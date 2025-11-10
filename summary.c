@@ -1,71 +1,65 @@
 // summary.c contains functions for data analysis and statistics.
-
 #include <stdio.h>
-#include <string.h>
-#include <math.h> // Needed for statistics (e.g., floor, round)
-
+#include <float.h>
 
 #define STRING_LEN 50
 
-typedef struct {
-    int id;
-    char name[STRING_LEN];
-    char programme[STRING_LEN];
-    float mark;
-} StudentRecord;
+#include "records.h"
+#include "summary.h"
 
-
-// UTILITY FUNCTION: calculateAverageMark
-float calculateAverageMark(const StudentRecord records[], int count) {
-
-    // IF count is 0, THEN RETURN 0.0.
-
-    // Initialize total_marks to 0.0.
-
-    // FOR loop from i = 0 up to (count - 1):
-        // Add records[i].mark to total_marks.
-
-    // RETURN total_marks divided by count.
-
-    return 0.0; // Temporary placeholder return
+/* Simple helper to compute average mark. Returns 0.0f for empty/null input. */
+static float calculateAverageMark(const StudentRecord records[], int count) {
+    if (!records || count <= 0) return 0.0f;
+    double total = 0.0;
+    for (int i = 0; i < count; ++i) total += records[i].mark;
+    return (float)(total / (double)count);
 }
 
-
-// FUNCTION: showSummary
 void showSummary(const StudentRecord records[], int count) {
+    if (!records) {
+        printf("CMS: ERROR: Internal error (null records pointer).\n");
+        return;
+    }
 
-    // 1. Check if database is empty.
-    // IF count is 0, THEN:
-        // Print message ("CMS: The database is empty. No summary available.").
-        // RETURN.
+    if (count <= 0) {
+        printf("CMS: The database is empty. No summary available.\n");
+        return;
+    }
 
-    // 2. Initialize variables for min/max.
-    // Initialize max_mark to -1.0.
-    // Initialize min_mark to 101.0. // Marks are 0-100.
-    // Initialize high_id and low_id (or index) to track top/bottom student.
+    int passed = 0, failed = 0;
+    float max_mark = -FLT_MAX;
+    float min_mark =  FLT_MAX;
+    int max_idx = -1, min_idx = -1;
 
-    // 3. Calculation loop.
-    // FOR loop from i = 0 up to (count - 1):
-        // Current mark = records[i].mark;
+    for (int i = 0; i < count; ++i) {
+        float m = records[i].mark;
+        if (m > max_mark) { max_mark = m; max_idx = i; }
+        if (m < min_mark) { min_mark = m; min_idx = i; }
+        if (m >= 50.0f) ++passed;
+        else ++failed;
+    }
 
-        // IF current mark is GREATER THAN max_mark, THEN:
-            // Update max_mark = current mark.
-            // Update high_id (or high_index).
+    float avg = calculateAverageMark(records, count);
 
-        // IF current mark is LESS THAN min_mark, THEN:
-            // Update min_mark = current mark.
-            // Update low_id (or low_index).
+    printf("CMS: SUMMARY: %d record(s)\n", count);
+    printf("  Average mark : %.2f\n", (double)avg);
 
-    // 4. Calculate final metrics.
-    // Call calculateAverageMark and store the result (average_mark).
-    // Count the number of students who passed (Mark >= 50) and failed (Mark < 50).
+    if (max_idx >= 0) {
+        printf("  Highest mark  : %.1f (ID %d, %s, %s)\n",
+               records[max_idx].mark,
+               records[max_idx].id,
+               records[max_idx].name,
+               records[max_idx].programme);
+    }
 
-    // 5. Print Summary Report.
-    // Print header: "--- Database Summary Report ---".
-    // Print Total Records: "Total Students: X".
-    // Print Average Mark: "Average Mark: Y (formatted to two decimal places)".
-    // Print Highest Mark: "Highest Mark: Z by Student ID: [ID]".
-    // Print Lowest Mark: "Lowest Mark: A by Student ID: [ID]".
-    // Print Pass/Fail Count: "Passed: [Count], Failed: [Count]".
-    // Print footer: "-----------------------------".
+    if (min_idx >= 0) {
+        printf("  Lowest mark   : %.1f (ID %d, %s, %s)\n",
+               records[min_idx].mark,
+               records[min_idx].id,
+               records[min_idx].name,
+               records[min_idx].programme);
+    }
+
+    printf("  Passed        : %d\n", passed);
+    printf("  Failed        : %d\n", failed);
 }

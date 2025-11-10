@@ -1,7 +1,7 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#define MAX_RECORDS 200
+#define MAX_RECORDS 100
 #define STRING_LEN 50
 
 typedef struct {

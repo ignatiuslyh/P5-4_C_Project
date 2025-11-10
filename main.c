@@ -7,9 +7,9 @@
 #include "sort.h"
 #include "summary.h"
 
-// --- Global Constants  ---
-#define MAX_RECORDS 100 // Should match definition in records.h
-#define MAX_CMD_LENGTH 100 // Max length of a user command string
+
+#define MAX_RECORDS 100
+#define STRING_LEN 50
 
 
 // UTILITY FUNCTION: displayPrompt
@@ -268,8 +268,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         for (int i = 0; i < (int)sizeof(tmp)-1 && local_args[i]; ++i) tmp[i] = (char)toupper((unsigned char)local_args[i]);
         trim(tmp);
         if (tmp[0] == '\0' || strcmp(tmp, "ALL") == 0) {
-            // Print all records, current order
-            for (int i = 0; i < *count; ++i) print_record(&records[i]);
+            // Use centralized display function to print all records (keeps formatting consistent)
+            showAllRecords(records, *count);
             return 1;
         }
 
