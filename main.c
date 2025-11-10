@@ -124,10 +124,10 @@ int main() {
     // PSEUDOCODE:
 
     // 1. Initialization and Setup.
-    // StudentRecord records[MAX_RECORDS]; // The in-memory database array.
-    // int record_count = 0;              // Current number of records.
-    // char filename[] = "P1_1-CMS.txt";  // The default file name.
-    // char input_buffer[MAX_CMD_LENGTH]; // Buffer to store user input.
+    StudentRecord records[MAX_RECORDS]; // The in-memory database array.
+    int record_count = 0;              // Current number of records.
+    char filename[] = "P5_4-CMS.txt";  // The default file name.
+    char input_buffer[MAX_CMD_LENGTH]; // Buffer to store user input.
     // char command[20];                  // Buffer to store the main command word.
     // char arguments[MAX_CMD_LENGTH];    // Buffer to store command arguments.
     // int running = 1;                   // Control flag for the main loop.

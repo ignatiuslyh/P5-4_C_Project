@@ -18,7 +18,7 @@ int loadDB(const char *filename, StudentRecord records[], int *count)
     FILE *ptr = fopen(filename, "r");
     if (ptr == NULL)
     {
-        printf("CMS: Unable to open file - %s \n", filename);
+        printf("CMS: Unable to open file '%s' \n", filename);
         return 0;
     }
 
@@ -42,39 +42,45 @@ int loadDB(const char *filename, StudentRecord records[], int *count)
         int close_status = fclose(ptr);
         if(close_status == EOF)
         {
-            printf("CMS: File - %s was not closed properly. Data may be incomplete");
+            printf("CMS: File '%s' was not closed properly. Data may be incomplete");
             return -1;
         }
-        printf("CMS: The database file - %s was succcessfully opened.\n", filename);
+        printf("CMS: The database file '%s' was succcessfully opened.\n", filename);
         return 1;
 }
 
 // Rmb to make sure StudentRecord is read-only
 int saveDB(const char *filename, const StudentRecord records[], int count) 
 {
-    // TODO
-    // 1. Open the file for writing ("w").
-    // The "w" mode will CREATE the file if it doesn't exist or TRUNCATE (delete content) if it does.
-    // FILE *fp = fopen(filename, "w");
+    if (filename == NULL) {
+        printf("CMS: Unable to write to file (null filename).\n");
+        return 0;
+    }
 
-    // 1a. Check for initial file open error.
-    // IF fp is NULL, THEN print error message ("CMS: Unable to write to file...") and RETURN 0.
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+        printf("CMS: Unable to write to file: %s\n", filename);
+        return 0;
+    }
 
-    // 2. Write records in a loop.
-    // FOR loop from i = 0 up to (count - 1):
-        // Use fprintf to write the data for records[i] to the file pointer fp.
-        // The format should match how loadDatabase expects to read it, e.g.:
-        // fprintf(fp, "%d %s %s %.1f\n", ...); // Note: Use \n to put each record on a new line.
+    for (int i = 0; i < count; ++i) {
+        int written = fprintf(fp, "%d %s %s %.1f\n",
+                              records[i].id,
+                              records[i].name,
+                              records[i].programme,
+                              records[i].mark);
+        if (written < 0) {
+            printf("CMS: Write error occurred while saving to file: %s\n", filename);
+            fclose(fp);
+            return 0;
+        }
+    }
 
-        // Optional: Check the return value of fprintf. If it's negative, a write error occurred.
+    if (fclose(fp) == EOF) {
+        printf("CMS: Critical error while closing file: %s\n", filename);
+        return -1;
+    }
 
-    // 3. Cleanup: Close the file and check for closing errors.
-    // close_status = fclose(fp);
-
-    // IF close_status is EOF, THEN print critical error message and RETURN -1.
-
-    // 4. Success.
-    // Print success message ("CMS: The database file ... was successfully saved.") and RETURN 1.
-
-    return 0; 
+    printf("CMS: The database file '%s' was successfully saved.\n", filename);
+    return 1;
 }

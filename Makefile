@@ -2,31 +2,33 @@
 CC = gcc
 
 # Define compiler flags
-CFLAGS = -I./src
+CFLAGS := -std=c17 -Wall -Wextra -I. -O2 -DNDEBUG
 
 # Define source files
-SRCDIR = ./src
-SOURCES = $(wildcard $(SRCDIR)/**/*.c) $(SRCDIR)/main.c
+SRCS := main.c database.c records.c sort.c summary.c
 
 # Define object files
-OBJECTS = $(SOURCES:.c=.o)
+OBJECTS = $(patsubst %.c,build/%.o,$(SRCS))
 
 # Define output executable
-TARGET = myprogram
+TARGET := cms_P5-4
 
-# Default target
-all: $(TARGET)
+build/%.o: %.c | build
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Link object files into the executable
-$(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $(OBJS)
 
-# Compile each .c file into .o
-$(SRCDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+build:
+	mkdir -p build
 
 # Clean up build files
-clean:
-	rm -f $(OBJECTS) $(TARGET)
-
 .PHONY: all clean
+all: $(TARGET)
+
+clean:
+	rm -rf build $(TARGET)
+
+
+
+
