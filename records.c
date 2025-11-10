@@ -83,7 +83,7 @@ int updateRecord(StudentRecord records[], int count, int id, char field, void *n
 
     // 1. Find the record index.
     // index = findRecordById(records, count, id);
-
+    index = findRecordById(records, count, id);
     // 2. Check if found.
     // IF index is -1, THEN:
         // Print error message ("CMS: The record with ID X does not exist.").
