@@ -261,56 +261,62 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 
-    // SHOW [ALL] | [ALL SORT BY ID] | [ALL SORT BY MARK] | [SUMMARY]
+       // SHOW [ALL] | [ALL SORT BY ID] | [ALL SORT BY MARK] | [SUMMARY]
     if (iequals(command, "SHOW")) {
-        char tmp[64] = {0};
-        for (int i = 0; i < (int)sizeof(tmp)-1 && local_args[i]; ++i) tmp[i] = toupper((unsigned char)local_args[i]);
+        // Build uppercase view of local_args for robust matching
+        char tmp[128] = {0};
+        for (int i = 0; i < (int)sizeof(tmp)-1 && local_args[i]; ++i) tmp[i] = (char)toupper((unsigned char)local_args[i]);
         trim(tmp);
         if (tmp[0] == '\0' || strcmp(tmp, "ALL") == 0) {
             // Print all records, current order
             for (int i = 0; i < *count; ++i) print_record(&records[i]);
             return 1;
         }
-        if (strcmp(tmp, "ALL SORT BY ID") == 0) {
-            #ifdef HAVE_SORT_BY_ID
-            sortById(records, *count);
-            #else
-            // simple bubble-sort by id for small datasets (keeps code self-contained)
-            for (int i = 0; i < *count; ++i)
-                for (int j = 0; j + 1 < *count; ++j)
-                    if (records[j].id > records[j+1].id) {
-                        StudentRecord t = records[j]; records[j] = records[j+1]; records[j+1] = t;
-                    }
-            #endif
-            for (int i = 0; i < *count; ++i) print_record(&records[i]);
-            return 1;
+
+        // Tokenize tmp into words for pattern matching: e.g., ALL SORT BY ID DESC
+        char toks[8][32];
+        int ntoks = 0;
+        {
+            char work[128];
+            strncpy(work, tmp, sizeof(work)-1);
+            char *p = strtok(work, " \t");
+            while (p && ntoks < 8) {
+                strncpy(toks[ntoks++], p, sizeof(toks[0])-1);
+                p = strtok(NULL, " \t");
+            }
         }
-        if (strcmp(tmp, "ALL SORT BY MARK") == 0) {
-            #ifdef HAVE_SORT_BY_MARK
-            sortByMark(records, *count);
-            #else
-            for (int i = 0; i < *count; ++i)
-                for (int j = 0; j + 1 < *count; ++j)
-                    if (records[j].mark > records[j+1].mark) {
-                        StudentRecord t = records[j]; records[j] = records[j+1]; records[j+1] = t;
-                    }
-            #endif
-            for (int i = 0; i < *count; ++i) print_record(&records[i]);
-            return 1;
-        }
-        if (strcmp(tmp, "SUMMARY") == 0) {
+        if (ntoks >= 1 && iequals(toks[0], "SUMMARY")) {
             #ifdef HAVE_SUMMARY
             showSummary(records, *count);
             #else
-            if (*count == 0) printf("CMS: No records.\n");
-            else {
-                float sum = 0.0f;
-                for (int i = 0; i < *count; ++i) sum += records[i].mark;
-                printf("CMS: Records: %d, Average: %.2f\n", *count, sum / *count);
-            }
+            show_summary_local(records, *count);
             #endif
             return 1;
         }
+
+        // Check for pattern: ALL SORT BY <ID|MARK> [ASC|DESC]
+        if (ntoks >= 4 && iequals(toks[0], "ALL") && iequals(toks[1], "SORT") && iequals(toks[2], "BY")) {
+            int by_id = 0;
+            if (iequals(toks[3], "ID")) by_id = 1;
+            else if (iequals(toks[3], "MARK")) by_id = 0;
+            else {
+                printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", toks[3]);
+                return 1;
+            }
+            int asc = 1; // default ascending
+            if (ntoks >= 5) {
+                if (iequals(toks[4], "DESC")) asc = 0;
+                else if (iequals(toks[4], "ASC")) asc = 1;
+                else {
+                    printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", toks[4]);
+                    return 1;
+                }
+            }
+            // Sort a copy and print (preserves DB order)
+            sort_and_print(records, *count, by_id, asc);
+            return 1;
+        }
+
         printf("CMS: ERROR: Invalid SHOW command.\n");
         return 1;
     }
