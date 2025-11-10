@@ -128,7 +128,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         else printf("CMS: ERROR: SAVE failed for '%s'.\n", file);
         return 1;
     }
-
+/*
     // INSERT ID Name Programme Mark
     // (Name and Programme must not contain spaces)
     if (iequals(command, "INSERT")) {
@@ -260,7 +260,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
-
+*/
        // SHOW [ALL] | [ALL SORT BY ID] | [ALL SORT BY MARK] | [SUMMARY]
     if (iequals(command, "SHOW")) {
         // Build uppercase view of local_args for robust matching
@@ -374,7 +374,6 @@ int main(void) {
         running = processCommand(command, arguments, records, &record_count, filename);
     }
 
-    // Optional: ask whether to auto-save before exit (keeps main simple and explicit)
     printf("CMS: Program exiting. If you want to save changes run 'SAVE' before exit next time.\n");
 
     return 0;
