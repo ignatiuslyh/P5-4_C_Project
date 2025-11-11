@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <stdio.h>
-#include <string.h>
 
 // (same as database.c)
 #define MAX_RECORDS 200
@@ -23,7 +21,11 @@ int findRecordById(const StudentRecord records[], int count, int id) {
     // FOR loop from i = 0 up to (count - 1):
         // IF records[i].id is equal to the input id, THEN:
             // RETURN i (the index).
-
+    for (int i = 0; i <count; i++)
+    {
+        if (records[i].id == id)
+            return i;
+    }
     // IF the loop finishes without finding a match, THEN:
         // RETURN -1 (not found).
 
