@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/usr/include",
+        "/usr/include/x86_64-linux-gnu",
+        "/usr/local/include",
+        "/usr/lib/gcc/x86_64-linux-gnu/12/include"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}/**",
+          "/usr/include",
+          "/usr/include/x86_64-linux-gnu",
+          "/usr/local/include"
+        ],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db"
+      },
+      "defines": [],
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "c17",
+      "cppStandard": "gnu++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}
