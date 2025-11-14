@@ -107,6 +107,7 @@ int queryRecord(const StudentRecord records[], int count, int id) {
 //  - RETURN 1
 int updateRecord(StudentRecord records[], int count, int id, char field, void *newValue) {
 
+
     // 1. Find the record index.
     index = findRecordById(records, count, id);
     // 2. Check if found.
