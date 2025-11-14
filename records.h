@@ -13,6 +13,6 @@ typedef struct StudentRecord {
     float mark;
 } StudentRecord;
 
-
+int deleteRecord(StudentRecord records[], int *count, int id);
 
 #endif

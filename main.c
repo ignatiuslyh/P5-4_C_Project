@@ -226,7 +226,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         #endif
         return 1;
     }
-
+*/
     // DELETE ID
     if (iequals(command, "DELETE")) {
         int id;
@@ -260,7 +260,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
-*/
+
        // SHOW [ALL] | [ALL SORT BY ID] | [ALL SORT BY MARK] | [SUMMARY]
     if (iequals(command, "SHOW")) {
         // Build uppercase view of local_args for robust matching

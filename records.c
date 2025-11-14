@@ -187,5 +187,29 @@ int updateRecord(StudentRecord records[], int count, int id, char field, void *n
 //  - Print "CMS: DELETE successful (ID <id>)."
 //  - RETURN 1
 int deleteRecord(StudentRecord records[], int *count, int id) {
-    return 0; // placeholder: implement steps above
+    
+     // Validate parameters
+    if (records == NULL || count == NULL) {
+        printf("CMS: ERROR: Internal error (bad parameters).\n");
+        return 0;
+    }
+    
+    // Find the record to delete
+    int index = findRecordById(records, *count, id);
+    if (index == -1) {
+        printf("CMS: The record with ID %d does not exist.\n", id);
+        return 0;
+    }
+    
+    // Shift all subsequent records left to overwrite the deleted record
+    for (int i = index; i < *count - 1; i++) {
+        records[i] = records[i + 1];
+    }
+    
+    // Decrement the count
+    (*count)--;
+    
+    printf("CMS: DELETE successful (ID %d).\n", id);
+
+    return 1;
 }
