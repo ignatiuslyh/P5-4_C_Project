@@ -1,15 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h> // Useful for command parsing (e.g., converting to uppercase)
+#include <ctype.h> 
 
 #include "database.h"
 #include "records.h"
 #include "sort.h"
 #include "summary.h"
-
-
-#define MAX_RECORDS 100
-#define STRING_LEN 50
 
 
 // UTILITY FUNCTION: displayPrompt
@@ -286,11 +282,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             }
         }
         if (ntoks >= 1 && iequals(toks[0], "SUMMARY")) {
-            #ifdef HAVE_SUMMARY
             showSummary(records, *count);
-            #else
-            show_summary_local(records, *count);
-            #endif
             return 1;
         }
 
