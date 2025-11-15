@@ -1,0 +1,10 @@
+# VS Code workspace settings and local configs
+.vscode/
+
+# Optional: ignore workspace files
+*.code-workspace
+
+# Build/artifacts (optional suggestions)
+build/
+*.o
+cms
