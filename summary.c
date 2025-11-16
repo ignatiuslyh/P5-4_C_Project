@@ -2,10 +2,7 @@
 #include <stdio.h>
 #include <float.h>
 
-#define STRING_LEN 50
-
 #include "records.h"
-#include "summary.h"
 
 /* Simple helper to compute average mark. Returns 0.0f for empty/null input. */
 static float calculateAverageMark(const StudentRecord records[], int count) {
