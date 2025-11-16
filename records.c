@@ -105,11 +105,9 @@ int queryRecord(const StudentRecord records[], int count, int id) {
 //          - RETURN 0
 //  - End switch
 //  - RETURN 1
-int updateRecord(StudentRecord records[], int count, int id, char field, void *newValue) {
-
-
+int updateRecord(StudentRecord records[], int count, int id) {
     // 1. Find the record index.
-    index = findRecordById(records, count, id);
+    int index = findRecordById(records, count, id);
     // 2. Check if found.
     // check whether the record is found in database
     if (index != -1)
@@ -129,49 +127,10 @@ int updateRecord(StudentRecord records[], int count, int id, char field, void *n
     {
         printf("There is no record with ID: %d found in our database.\n", id);
     }
-    // 3. Apply the update based on 'field'.
-    switch (field) {
-       // SWITCH statement on 'field' (after converting field to uppercase for safety):
-       // CASE 'N' (Name):
-           // Use strcpy to copy the new string from (char *)newValue into records[index].name.
-           // Print success message.
-           // BREAK.
-       // CASE 'P' (Programme):
-           // Use strcpy to copy the new string from (char *)newValue into records[index].programme.
-           // Print success message.
-           // BREAK.
-       // CASE 'M' (Mark):
-           // Cast newValue to float and assign it: records[index].mark = *(float *)newValue;
-           // Print success message.
-           // BREAK.
-       // DEFAULT:
-           // Print error message ("CMS: ERROR: Invalid field for update.").
-           // RETURN -1.
 
-       /* case 'N' :
-            strcpy(records[index].name, (char*)newValue);
-            printf("Successful update your name.\n");
-            break;
-        case 'P' :
-            strcpy(records[index].programme, (char*)newValue);
-            printf("Successful update your programme.\n");
-            break;
-        case 'M' :
-            records[index].mark = *(float*)newValue;
-            printf("Successful update your marks.\n");
-            break;
-        default:
-            printf("CMS: ERROR: Invalid field for update.");
-            return -1;*/
-    }
-   
+    return 1;
 
-    // 4. Success.
-    // RETURN 1.
-   
-    return 0; // placeholder: implement steps above
 }
-
 // deleteRecord(StudentRecord records[], int *count, int id)
 // Purpose: remove a record with the given id and shift subsequent records left.
 // Pseudocode:
