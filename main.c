@@ -222,7 +222,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         #endif
         return 1;
     }
-
+*/
     // DELETE ID
     if (iequals(command, "DELETE")) {
         int id;
