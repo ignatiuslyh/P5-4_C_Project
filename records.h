@@ -1,11 +1,14 @@
 #ifndef RECORDS_H
 #define RECORDS_H
 
-
-#ifndef STRING_LEN
-#define STRING_LEN 50
+#ifdef __cplusplus
+extern "C" {
 #endif
 
+#define STRING_LEN 50
+#define MAX_RECORDS 100
+
+// define struct 
 typedef struct StudentRecord {
     int id;
     char name[STRING_LEN];

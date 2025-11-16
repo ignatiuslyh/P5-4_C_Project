@@ -4,16 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-// (same as database.c)
-#define MAX_RECORDS 200
-#define STRING_LEN 50
+#include "records.h"
 
-typedef struct {
-    int id;
-    char name[STRING_LEN];
-    char programme[STRING_LEN];
-    float mark;
-} StudentRecord;
 
 int findRecordById(const StudentRecord records[], int count, int id) {
 
@@ -48,9 +40,9 @@ int findRecordById(const StudentRecord records[], int count, int id) {
 //  - (*count)++                     // increment stored count
 //  - Print "CMS: INSERT successful (ID <id>)."   // optional message here or let caller print
 //  - RETURN 1
-int insertRecord(StudentRecord records[], int *count, const StudentRecord newRecord) {
-    return 0; // placeholder: implement steps above
-}
+// int insertRecord(StudentRecord records[], int *count, const StudentRecord newRecord) {
+//     return 0; // placeholder: implement steps above
+// }
 
 // queryRecord(const StudentRecord records[], int count, int id)
 // Purpose: locate record by id and print its details in a simple table.
@@ -64,11 +56,11 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord newRec
 //      - RETURN 0
 //  - Print header row: "ID   Name   Programme   Mark"
 //  - Print separator line
-//  - Print record details for records[idx] using formatted output
-//  - RETURN 1
-int queryRecord(const StudentRecord records[], int count, int id) {
-    return 0; // placeholder: implement steps above
-}
+// //  - Print record details for records[idx] using formatted output
+// //  - RETURN 1
+// int queryRecord(const StudentRecord records[], int count, int id) {
+//     return 0; // placeholder: implement steps above
+// }
 
 // updateRecord(StudentRecord records[], int count, int id, char field, void *newValue)
 // Purpose: update one field (N/P/M) of the record identified by id.

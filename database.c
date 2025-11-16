@@ -2,56 +2,65 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_RECORDS 100
-#define STRING_LEN 50
-
-typedef struct {
-    int id;
-    char name[STRING_LEN];
-    char programme[STRING_LEN];
-    float mark;
-} StudentRecord;
+#include "records.h"
 
 // Rmb to make sure file is read-only
 int loadDB(const char *filename, StudentRecord records[], int *count)
 {
-    if (filename == NULL) {
+    if (!filename) {
         printf("CMS: Unable to open file (null filename).\n");
         return 0;
     }
 
     FILE *fp = fopen(filename, "r");
-    if (fp == NULL) {
+    if (!fp) {
         printf("CMS: Unable to open file '%s'\n", filename);
         return 0;
     }
 
+    char line[512];
     *count = 0;
 
-    // Temporary variables for scanned values
-    int id;
-    char name[STRING_LEN];
-    char programme[STRING_LEN];
-    float mark;
+    while (*count < MAX_RECORDS && fgets(line, sizeof(line), fp)) {
+        size_t len = strlen(line);
+        
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) line[--len] = '\0';
+        if (len == 0) continue; // skip blank lines
 
-    // Read lines until EOF or until we reach MAX_RECORDS
-    while (*count < MAX_RECORDS && fscanf(fp, "%d %49s %49s %f", &id, name, programme, &mark) == 4) {
+    
+        char *s = line;
+        while (*s && isspace((unsigned char)*s)) s++;
+
+        // skip non-data lines (metadata or header). Data lines start with a digit (ID).
+        if (!isdigit((unsigned char)*s)) {
+            // also skip header like "ID\tName..." 
+            if (strncmp(s, "ID\t", 3) == 0 || strncmp(s, "ID ", 3) == 0) continue;
+            continue;
+        }
+
+        // Try to parse tab-separated: ID<TAB>Name<TAB>Programme<TAB>Mark 
+        int id = 0;
+        char name_buf[STRING_LEN];
+        char prog_buf[STRING_LEN];
+        float mark = 0.0f;
+
+        int matched = sscanf(s, "%d\t%49[^\t]\t%49[^\t]\t%f", &id, name_buf, prog_buf, &mark);
+        if (matched != 4) {
+            // fallback: try whitespace-separated tokens (names/programme without spaces) 
+            matched = sscanf(s, "%d %49s %49s %f", &id, name_buf, prog_buf, &mark);
+            if (matched != 4) continue; // could not parse; skip line 
+        }
+
+        // store record safely 
         records[*count].id = id;
-        strncpy(records[*count].name, name, STRING_LEN - 1);
+        strncpy(records[*count].name, name_buf, STRING_LEN - 1);
         records[*count].name[STRING_LEN - 1] = '\0';
-        strncpy(records[*count].programme, programme, STRING_LEN - 1);
+        strncpy(records[*count].programme, prog_buf, STRING_LEN - 1);
         records[*count].programme[STRING_LEN - 1] = '\0';
         records[*count].mark = mark;
         (*count)++;
     }
 
-    // If we stopped because we hit the limit, warn the user (but return success)
-    if (!feof(fp) && *count == MAX_RECORDS) {
-        printf("CMS: Maximum record limit of %d reached; additional entries were ignored.\n", MAX_RECORDS);
-        // attempt to consume remaining lines (optional) or just proceed to close
-    }
-
-    // Check for read errors (other than EOF)
     if (ferror(fp)) {
         printf("CMS: Error while reading file '%s'.\n", filename);
         fclose(fp);
@@ -66,39 +75,35 @@ int loadDB(const char *filename, StudentRecord records[], int *count)
     return 1;
 }
 
-// Rmb to make sure StudentRecord is read-only
-int saveDB(const char *filename, const StudentRecord records[], int count) 
+int saveDB(const char *filename, const StudentRecord records[], int count)
 {
-    if (filename == NULL) {
+    if (!filename) {
         printf("CMS: Unable to write to file (null filename).\n");
         return 0;
     }
 
     FILE *fp = fopen(filename, "w");
-    if (fp == NULL) {
+    if (!fp) {
         printf("CMS: Unable to write to file: %s\n", filename);
         return 0;
     }
 
+    // save as tab-separated to preserve spaces inside name/programme 
     for (int i = 0; i < count; ++i) {
-        // write one record per line in the same format as loadDB expects
-        int written = fprintf(fp, "%d %s %s %.1f\n",
-                              records[i].id,
-                              records[i].name,
-                              records[i].programme,
-                              records[i].mark);
-        if (written < 0) {
+        if (fprintf(fp, "%d\t%s\t%s\t%.1f\n",
+                    records[i].id,
+                    records[i].name,
+                    records[i].programme,
+                    records[i].mark) < 0) {
             printf("CMS: Write error occurred while saving to file: %s\n", filename);
             fclose(fp);
             return 0;
         }
     }
 
-    // check fclose status
     if (fclose(fp) == EOF) {
         printf("CMS: Critical error while closing file: %s\n", filename);
         return -1;
     }
-
     return 1;
 }

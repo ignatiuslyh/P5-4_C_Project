@@ -4,8 +4,7 @@
 #include <string.h>
 
 #include "records.h"
-
-#define STRING_LEN 50
+#include <stdlib.h>
 
 static void swapRecords(StudentRecord *a, StudentRecord *b) {
     if (!a || !b) return;
