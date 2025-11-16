@@ -107,17 +107,23 @@
 //     return 0; // placeholder: implement steps above
 // }
 
-void showAllRecords(const StudentRecord records[], int count) {
+void showAllRecords(const StudentRecord records[], int count)
+{
     if (!records) {
-        printf("CMS: ERROR: Internal error (null records pointer).\n");
+        printf("CMS: ERROR: Internal error (no records buffer).\n");
         return;
     }
+
+    printf("CMS: Here are all the records found in the table \"StudentRecords\".\n");
+    printf("%-8s %-20s %-24s %s\n", "ID", "Name", "Programme", "Mark");
+
     if (count <= 0) {
-        printf("CMS: The database is empty.\n");
+        printf("No records.\n");
         return;
     }
+
     for (int i = 0; i < count; ++i) {
-        printf("%d %s %s %.1f\n",
+        printf("%-8d %-20s %-24s %.1f\n",
                records[i].id,
                records[i].name,
                records[i].programme,
