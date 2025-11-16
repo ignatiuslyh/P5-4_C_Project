@@ -1,6 +1,7 @@
 // database.c is a File I/O focused Module. File contains functions: loadDB(), saveDB()
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "records.h"
 

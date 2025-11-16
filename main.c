@@ -6,6 +6,7 @@
 #include "records.h"
 #include "sort.h"
 #include "summary.h"
+#include "banner.h"
 
 
 // UTILITY FUNCTION: displayPrompt
@@ -110,7 +111,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (iequals(command, "OPEN")) {
         const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = loadDB(file, records, count);
-        if (rc == 1) printf("CMS: The database file \"%s\" is successfully opened.\n", file, *count);
+        if (rc == 1) printf("CMS: The database file \"%s\" is successfully opened.\n", file);
         else printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
         return 1;
     }
@@ -256,7 +257,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
-*/
+
        // SHOW ALL | SHOW ALL SORT BY ID | SHOW ALL SORT BY MARK | SHOW SUMMARY
     if (iequals(command, "SHOW")) {
         // copy and trim arguments
@@ -334,7 +335,7 @@ int main(void) {
     int running = 1;
 
     if (loadDB(filename, records, &record_count) == 1) {
-        printf("CMS: Loaded %d record(s) from %s\n", record_count, filename);
+        printBanner();
     } else {
         printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
     }

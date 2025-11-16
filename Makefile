@@ -3,7 +3,7 @@ CC      := gcc
 CFLAGS  := -std=c17 -Wall -Wextra -I. -O2 -DNDEBUG -MMD -MP
 
 # Sources and target
-SRCS    := main.c database.c records.c sort.c summary.c
+SRCS    := main.c database.c records.c sort.c summary.c banner.c
 OBJECTS := $(patsubst %.c,build/%.o,$(SRCS))
 TARGET  := cms_P5-4
 
