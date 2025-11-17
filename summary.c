@@ -4,7 +4,7 @@
 
 #include "records.h"
 
-/* Simple helper to compute average mark. Returns 0.0f for empty/null input. */
+/* helper to compute average mark. Returns 0.0f for empty/null input. */
 static float calculateAverageMark(const StudentRecord records[], int count) {
     if (!records || count <= 0) return 0.0f;
     double total = 0.0;
@@ -39,22 +39,19 @@ void showSummary(const StudentRecord records[], int count) {
     float avg = calculateAverageMark(records, count);
 
     printf("CMS: SUMMARY: %d record(s)\n", count);
+    printf("  Total students: %d\n", count);
     printf("  Average mark : %.2f\n", (double)avg);
 
     if (max_idx >= 0) {
-        printf("  Highest mark  : %.1f (ID %d, %s, %s)\n",
+        printf("  Highest mark  : %.1f (%s)\n",
                records[max_idx].mark,
-               records[max_idx].id,
-               records[max_idx].name,
-               records[max_idx].programme);
+               records[max_idx].name);
     }
 
     if (min_idx >= 0) {
-        printf("  Lowest mark   : %.1f (ID %d, %s, %s)\n",
+        printf("  Lowest mark   : %.1f (%s)\n",
                records[min_idx].mark,
-               records[min_idx].id,
-               records[min_idx].name,
-               records[min_idx].programme);
+               records[min_idx].name);
     }
 
     printf("  Passed        : %d\n", passed);
