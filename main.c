@@ -6,6 +6,7 @@
 #include "records.h"
 #include "sort.h"
 #include "summary.h"
+#include "banner.h"
 
 
 // UTILITY FUNCTION: displayPrompt
@@ -110,8 +111,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (iequals(command, "OPEN")) {
         const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = loadDB(file, records, count);
-        if (rc == 1) printf("CMS: OPEN successful (%s). %d records.\n", file, *count);
-        else printf("CMS: ERROR: OPEN failed for '%s'.\n", file);
+        if (rc == 1) printf("CMS: The database file \"%s\" is successfully opened.\n", file);
+        else printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
         return 1;
     }
 
@@ -121,7 +122,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = saveDB(file, records, *count);
         if (rc == 1) printf("CMS: SAVE successful (%s).\n", file);
-        else printf("CMS: ERROR: SAVE failed for '%s'.\n", file);
+        else printf("CMS: ERROR: SAVE unsuccessful for '%s'.\n", file);
         return 1;
     }
 /*
@@ -257,54 +258,51 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 
-       // SHOW [ALL] | [ALL SORT BY ID] | [ALL SORT BY MARK] | [SUMMARY]
+       // SHOW ALL | SHOW ALL SORT BY ID | SHOW ALL SORT BY MARK | SHOW SUMMARY
     if (iequals(command, "SHOW")) {
-        // Build uppercase view of local_args for robust matching
-        char tmp[128] = {0};
-        for (int i = 0; i < (int)sizeof(tmp)-1 && local_args[i]; ++i) tmp[i] = (char)toupper((unsigned char)local_args[i]);
-        trim(tmp);
-        if (tmp[0] == '\0' || strcmp(tmp, "ALL") == 0) {
-            // Use centralized display function to print all records (keeps formatting consistent)
+        // copy and trim arguments
+        char buf[128];
+        strncpy(buf, local_args, sizeof(buf) - 1);
+        buf[sizeof(buf) - 1] = '\0';
+        trim(buf);
+
+        // SHOW or SHOW ALL
+        if (buf[0] == '\0' || iequals(buf, "ALL")) {
             showAllRecords(records, *count);
             return 1;
         }
 
-        // Tokenize tmp into words for pattern matching: e.g., ALL SORT BY ID DESC
-        char toks[8][32];
-        int ntoks = 0;
-        {
-            char work[128];
-            strncpy(work, tmp, sizeof(work)-1);
-            char *p = strtok(work, " \t");
-            while (p && ntoks < 8) {
-                strncpy(toks[ntoks++], p, sizeof(toks[0])-1);
-                p = strtok(NULL, " \t");
-            }
-        }
-        if (ntoks >= 1 && iequals(toks[0], "SUMMARY")) {
+        // SHOW SUMMARY
+        if (iequals(buf, "SUMMARY")) {
             showSummary(records, *count);
             return 1;
         }
 
-        // Check for pattern: ALL SORT BY <ID|MARK> [ASC|DESC]
-        if (ntoks >= 4 && iequals(toks[0], "ALL") && iequals(toks[1], "SORT") && iequals(toks[2], "BY")) {
-            int by_id = 0;
-            if (iequals(toks[3], "ID")) by_id = 1;
-            else if (iequals(toks[3], "MARK")) by_id = 0;
-            else {
-                printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", toks[3]);
+        // parse into up to 5 tokens
+        char t1[16] = {0}, t2[16] = {0}, t3[16] = {0}, t4[16] = {0}, t5[16] = {0};
+        int n = sscanf(buf, "%15s %15s %15s %15s %15s", t1, t2, t3, t4, t5);
+
+        // expect: ALL SORT BY <FIELD> [ORDER]
+        if (n >= 4 && iequals(t1, "ALL") && iequals(t2, "SORT") && iequals(t3, "BY")) {
+            char *field = t4;
+            char *order = (n >= 5) ? t5 : NULL;
+
+            if (!iequals(field, "ID") && !iequals(field, "MARK")) {
+                printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", field);
                 return 1;
             }
+
+            int by_id = iequals(field, "ID") ? 1 : 0;
             int asc = 1; // default ascending
-            if (ntoks >= 5) {
-                if (iequals(toks[4], "DESC")) asc = 0;
-                else if (iequals(toks[4], "ASC")) asc = 1;
+            if (order) {
+                if (iequals(order, "DESC")) asc = 0;
+                else if (iequals(order, "ASC")) asc = 1;
                 else {
-                    printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", toks[4]);
+                    printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", order);
                     return 1;
                 }
             }
-            // Sort a copy and print (preserves DB order)
+
             sort_and_print(records, *count, by_id, asc);
             return 1;
         }
@@ -325,8 +323,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 }
 
 int main(void) {
-    StudentRecord records[MAX_RECORDS];    // in-memory DB
-    int record_count = 0;                 // current number of records
+    StudentRecord records[MAX_RECORDS];    
+    int record_count = 0;                 
     const char *filename = "P5_4-CMS.txt"; // default DB filename
 
     enum { MAX_CMD_LEN = 512, CMD_WORD_LEN = 32, ARGS_LEN = 480 };
@@ -337,7 +335,7 @@ int main(void) {
     int running = 1;
 
     if (loadDB(filename, records, &record_count) == 1) {
-        printf("CMS: Loaded %d record(s) from %s\n", record_count, filename);
+        printBanner();
     } else {
         printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
     }

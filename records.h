@@ -17,6 +17,8 @@ typedef struct StudentRecord {
 } StudentRecord;
 
 int deleteRecord(StudentRecord records[], int *count, int id);
-int updateRecord(StudentRecord records[], int count, int id);
+void showAllRecords(const StudentRecord records[], int count);
+int updateRecord(StudentRecord records[], int count, int id, char field, void *newValue);
+int findRecordById(const StudentRecord records[], int count, int id);
 
 #endif
