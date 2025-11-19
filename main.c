@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h> 
+#include <stdlib.h>
 
 #include "database.h"
 #include "records.h"
@@ -125,6 +126,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         else printf("CMS: ERROR: SAVE unsuccessful for '%s'.\n", file);
         return 1;
     }
+
+    
 /*
     // INSERT ID Name Programme Mark
     // (Name and Programme must not contain spaces)
@@ -174,7 +177,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
-
+*/
     // UPDATE ID FIELD VALUE
     // FIELD: N (name), P (programme), M (mark)
     // VALUE may contain spaces for N/P (we take rest of string)
@@ -223,7 +226,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         #endif
         return 1;
     }
-*/
+
     // DELETE ID
     if (iequals(command, "DELETE")) {
         int id;
