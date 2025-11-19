@@ -112,7 +112,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = loadDB(file, records, count);
         if (rc == 1) printf("CMS: The database file \"%s\" is successfully opened.\n", file);
-        else printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
+        else printf("CMS: ERROR: The database file \"%s\" failed to open.\n", file);
         return 1;
     }
 
@@ -333,12 +333,9 @@ int main(void) {
     char arguments[ARGS_LEN];
 
     int running = 1;
-
-    if (loadDB(filename, records, &record_count) == 1) {
-        printBanner();
-    } else {
-        printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
-    }
+    
+    printBanner();
+    printf("CMS: To start, use OPEN to load \"%s\" \n", filename);
 
     // Main command loop
     while (running) {
