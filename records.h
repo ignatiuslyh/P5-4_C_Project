@@ -20,5 +20,6 @@ int deleteRecord(StudentRecord records[], int *count, int id);
 void showAllRecords(const StudentRecord records[], int count);
 int updateRecord(StudentRecord records[], int count, int id, char field, char *newValue);
 int findRecordById(const StudentRecord records[], int count, int id);
+int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRecord);
 
 #endif
