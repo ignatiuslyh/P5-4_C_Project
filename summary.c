@@ -1,4 +1,4 @@
-// summary.c contains functions for data analysis and statistics.
+// summary.c contains functions for to show overall statistics
 #include <stdio.h>
 #include <float.h>
 
