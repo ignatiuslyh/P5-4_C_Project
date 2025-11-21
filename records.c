@@ -46,6 +46,39 @@ int findRecordById(const StudentRecord records[], int count, int id) {
 // //     return 0; // placeholder: implement steps above
 // // }
 
+int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRecord) {
+    // Validate input pointers
+    if (!records || !count || !newRecord) {
+        printf("CMS: ERROR: Internal error (bad parameters).\n");
+        return 0;
+    }
+
+    // Check capacity
+    if (*count >= MAX_RECORDS) {
+        printf("CMS: ERROR: Database full.\n");
+        return 0;
+    }
+
+    // Check for duplicate ID
+    if (findRecordById(records, *count, newRecord->id) != -1) {
+        printf("CMS: ERROR: Record with ID %d already exists.\n", newRecord->id);
+        return 0;
+    }
+
+    // Insert record safely (bounded copies)
+    records[*count].id = newRecord->id;
+    strncpy(records[*count].name, newRecord->name, STRING_LEN - 1);
+    records[*count].name[STRING_LEN - 1] = '\0';
+    strncpy(records[*count].programme, newRecord->programme, STRING_LEN - 1);
+    records[*count].programme[STRING_LEN - 1] = '\0';
+    records[*count].mark = newRecord->mark;
+
+    // Increment stored count
+    (*count)++;
+
+    return 1;
+}
+
 // // queryRecord(const StudentRecord records[], int count, int id)
 // // Purpose: locate record by id and print its details in a simple table.
 // // Pseudocode:
