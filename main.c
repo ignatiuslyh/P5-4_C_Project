@@ -227,12 +227,15 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             printf("CMS: ERROR: Invalid Mark value.\n");
             return 1;
         }
+        // round up to 1 decimal point
+         mark = round(mark * 10) / 10.0;
         // enforce mark range [0.0, 100.0]
         if (mark < 0.0f || mark > 100.0f) {
             printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
             return 1;
         }
-
+         
+               
         // build record and insert
         StudentRecord sr;
         sr.id = id;
@@ -279,7 +282,6 @@ if (iequals(command, "UPDATE")) {
     const char *p_name = strstr(src, "Name=");
     const char *p_prog = strstr(src, "Programme=");
     const char *p_mark = strstr(src, "Mark=");
-
 
 
     if (!p_id) {
@@ -342,15 +344,21 @@ if (iequals(command, "UPDATE")) {
                       5, sizeof(mark_buf), mark_buf);
     }
 
-    // Now perform updates
+    // Updates
     int found = 0;
     for (int i = 0; i < *count; ++i) {
         if (records[i].id == id) {
                 found = 1;
                 // validate characters in Name 
                 if (idx_name != -1) {
+
                     if (!isValidNames(name_buf)) {
                         printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
+                        return 1;
+                    }
+
+                    if (name_buf[0] == '\0') {
+                        printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
                         return 1;
                     }
                     strncpy(records[i].name, name_buf, STRING_LEN-1);
@@ -362,6 +370,11 @@ if (iequals(command, "UPDATE")) {
                      printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
                     return 1;
                 }
+
+                 if (prog_buf[0] == '\0') {
+                        printf("CMS: Programme field is empty.Use: UPDATE ID=<id> Programme=<programme>\n");
+                        return 1;
+                    }
                 strncpy(records[i].programme, prog_buf, STRING_LEN-1);
             }
             // validate marks field to not contain letter and between 0 to 100
