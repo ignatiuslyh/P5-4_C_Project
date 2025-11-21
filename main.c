@@ -269,32 +269,30 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 */
-    // UPDATE ID FIELD VALUE
-    // FIELD: N (name), P (programme), M (mark)
-    // VALUE may contain spaces for N/P (we take rest of string)
-if (iequals(command, "UPDATE")) {
+    // UPDATE ID= <ID> FIELD =<VALUE>
+    if (iequals(command, "UPDATE")) {
+    
+    size_t slen = strlen(local_args);
 
-    const char *src = local_args;
-    size_t slen = strlen(src);
+  // find key positions in the original-cased local_args (case-sensitive)
+    const char *p_id  = strstr(local_args, "ID=");
+    const char *p_name = strstr(local_args, "Name=");
+    const char *p_prog = strstr(local_args, "Programme=");
+    const char *p_mark = strstr(local_args, "Mark=");
 
-  // find key positions in the original-cased src (case-sensitive)
-    const char *p_id  = strstr(src, "ID=");
-    const char *p_name = strstr(src, "Name=");
-    const char *p_prog = strstr(src, "Programme=");
-    const char *p_mark = strstr(src, "Mark=");
-
-
+    //ensure that ID= is present; 
     if (!p_id) {
         printf("CMS: UPDATE requires ID=\n");
         return 1;
     }
 
     // convert pointers to integer indices
-    int idx_id  = p_id  ? (int)(p_id  - src) : -1;
-    int idx_name = p_name ? (int)(p_name - src) : -1;
-    int idx_prog = p_prog ? (int)(p_prog - src) : -1;
-    int idx_mark = p_mark ? (int)(p_mark - src) : -1;
+    int idx_id  = p_id  ? (int)(p_id  - local_args) : -1;
+    int idx_name = p_name ? (int)(p_name - local_args) : -1;
+    int idx_prog = p_prog ? (int)(p_prog - local_args) : -1;
+    int idx_mark = p_mark ? (int)(p_mark - local_args) : -1;
 
+    // validate that user enter at least one field
     int field_count = 0;
     if (p_name) field_count++;
     if (p_prog) field_count++;
@@ -310,48 +308,36 @@ if (iequals(command, "UPDATE")) {
         return 1;
     }
 
-     // buffers for extracted values
+    // buffers for extracted values
     char id_buf[32] = {0};
     char name_buf[128] = {0};
     char prog_buf[64] = {0};
     char mark_buf[32] = {0};
 
-    // Extract ID
-    extract_input(src, slen,
-                  idx_id, idx_id, idx_name, idx_prog, idx_mark,
-                  3, sizeof(id_buf), id_buf);
-
+    // extract each value using the existing helper (preserve spaces)
+    extract_input(local_args, slen,idx_id, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("ID="), sizeof(id_buf), id_buf);
     int id = atoi(id_buf);
-
-    // Extract Name
+    // Extract for Name
     if (idx_name != -1) {
-        extract_input(src, slen,
-                      idx_name, idx_id, idx_name, idx_prog, idx_mark,
-                      5, sizeof(name_buf), name_buf);
+        extract_input(local_args, slen,idx_name, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Name="), sizeof(name_buf), name_buf);
     }
-
-    // Extract Programme
+    // Extract for Programme
     if (idx_prog != -1) {
-        extract_input(src, slen,
-                      idx_prog, idx_id, idx_name, idx_prog, idx_mark,
-                      10, sizeof(prog_buf), prog_buf);
+        extract_input(local_args, slen,idx_prog, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Programme="), sizeof(prog_buf), prog_buf);
     }
-
-    // Extract Mark
+    // Extract for Mark
     if (idx_mark != -1) {
-        extract_input(src, slen,
-                      idx_mark, idx_id, idx_name, idx_prog, idx_mark,
-                      5, sizeof(mark_buf), mark_buf);
+        extract_input(local_args, slen,idx_mark, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Mark="), sizeof(mark_buf), mark_buf);
     }
 
-    // Updates
+    // Updates record
     int found = 0;
     for (int i = 0; i < *count; ++i) {
+        // check if the student id is in the database, if it is excute the below code
         if (records[i].id == id) {
-                found = 1;
-                // validate characters in Name 
+            found = 1;
+                // validate characters for name to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
                 if (idx_name != -1) {
-
                     if (!isValidNames(name_buf)) {
                         printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
                         return 1;
@@ -363,8 +349,8 @@ if (iequals(command, "UPDATE")) {
                     }
                     strncpy(records[i].name, name_buf, STRING_LEN-1);
                 }
-            // validate characters in Programme
-        
+
+            // validate characters in Programme to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
             if (idx_prog != -1) {
                 if (!isValidNames(prog_buf)) {
                      printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
@@ -377,7 +363,7 @@ if (iequals(command, "UPDATE")) {
                     }
                 strncpy(records[i].programme, prog_buf, STRING_LEN-1);
             }
-            // validate marks field to not contain letter and between 0 to 100
+            // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1d.p
             if (idx_mark != -1) {
                 float m;
                 if (sscanf(mark_buf, "%f", &m) != 1) {
@@ -399,7 +385,7 @@ if (iequals(command, "UPDATE")) {
             break;
         }
     }
-
+    // student id does not exist, it will print out error message
     if (!found) {
         printf("CMS: The record with ID=%d does not exist.\n", id);
     }

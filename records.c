@@ -107,7 +107,7 @@ int updateRecord(StudentRecord records[], int count, int id, char *field, char *
     // 3.Update the name field with newValue when user typed "Name" only
         if (strcmp(field, "Name") == 0)
         {
-                strcpy(records[index].name, newValue);     
+            strcpy(records[index].name, newValue);     
         }
         //Update the programme field with newValue when user typed "Programme" only
         else if (strcmp(field, "Programme") == 0)
@@ -127,7 +127,7 @@ int updateRecord(StudentRecord records[], int count, int id, char *field, char *
          return 0;
     }
 
-    //4. Update Success.
+    //5. Update Success.
     return 1; 
     }
    
