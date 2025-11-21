@@ -122,8 +122,8 @@ static int isValidNames(const char *name) {
     if (!name) return 0;
     for (int i = 0; name[i] != '\0'; ++i) {
         unsigned char c = (unsigned char)name[i];
-        // Allow letters, space, hyphen, apostrophe, and period
-        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.') {
+        // Allow letters, space, hyphen, apostrophe, and period and parenthesis
+        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.'&& c != '(' && c != ')') {
             return 0; // invalid character found
         }
     }
@@ -288,15 +288,17 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (p_name) field_count++;
     if (p_prog) field_count++;
     if (p_mark) field_count++;
-     if (field_count != 1) {
-        printf("CMS: ERROR: At least update ONE field (Name, Programme, or Mark).\n");
-        return 1;
-    } 
 
-    else if (field_count >= 1) {
+    if (field_count == 0) {
+        printf("CMS: ERROR: At least ONE field must be updated (Name, Programme, or Mark).\n");
+        return 1;
+    }
+
+    if (field_count > 1) {
         printf("CMS: ERROR: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
         return 1;
-    } 
+    }
+
     // require exact case keys be present; otherwise error (simple behavior)
     if (!p_id) {
         printf("CMS: ERROR: UPDATE requires ID=\n");
@@ -349,12 +351,19 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
             // Update Name and validate whether the name  does not contain other character like @,#.!
             if (idx_name != -1) {
-                if (!isValidNames(namestr)) {
-                    printf("CMS: ERROR: Invalid Name.\n");
-                    return 1;
-                }
-                strncpy(records[i].name, namestr, STRING_LEN - 1);
+            // Check if name is empty or invalid
+                if (namestr[0] == '\0') {
+                printf("CMS: ERROR: Name cannot be empty.\n");
+                return 1;
             }
+
+            if (!isValidNames(namestr)) {
+                printf("CMS: ERROR: Invalid Name type.\n");
+                return 1;
+            }
+            strncpy(records[i].name, namestr, STRING_LEN - 1);
+            records[i].name[STRING_LEN - 1] = '\0'; // ensure null termination
+        }
 
             // Update Programme validate whether the programme does not contain other character like @,#.!
             if (idx_prog != -1) {

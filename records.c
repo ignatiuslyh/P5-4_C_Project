@@ -138,8 +138,7 @@ int updateRecord(StudentRecord records[], int count, int id, char *field, char *
 
     // 1. Find the record index.
     int index = findRecordById(records, count, id);
-    // 2. Check if found.
-    // check whether the record is found in database
+    // 2. Check if there is a record index.
     if (index != -1)
     {
     // 3. Apply the update based on 'field'.
@@ -215,41 +214,41 @@ int updateRecord(StudentRecord records[], int count, int id, char *field, char *
    
 
 
-// int deleteRecord(StudentRecord records[], int *count, int id) {
+int deleteRecord(StudentRecord records[], int *count, int id) {
     
-//      // Validate parameters
-//     if (records == NULL || count == NULL) {
-//         printf("CMS: ERROR: Internal error (bad parameters).\n");
-//         return 0;
-//     }
+     // Validate parameters
+    if (records == NULL || count == NULL) {
+        printf("CMS: ERROR: Internal error (bad parameters).\n");
+        return 0;
+    }
     
-//     // Find the record to delete
-//     int index = findRecordById(records, *count, id);
-//     if (index == -1) {
-//         printf("CMS: The record with ID %d does not exist.\n", id);
-//         return 0;
-//     }
+    // Find the record to delete
+    int index = findRecordById(records, *count, id);
+    if (index == -1) {
+        printf("CMS: The record with ID %d does not exist.\n", id);
+        return 0;
+    }
 
-//     for (int i = 0; i < count; ++i) {
-//         printf("%-8d %-20s %-24s %.1f\n",
-//                records[i].id,
-//                records[i].name,
-//                records[i].programme,
-//                records[i].mark);
-//     }
+    for (int i = 0; i < *count; ++i) {
+        printf("%-8d %-20s %-24s %.1f\n",
+               records[i].id,
+               records[i].name,
+               records[i].programme,
+               records[i].mark);
+    }
     
-//     // Shift all subsequent records left to overwrite the deleted record
-//     for (int i = index; i < *count - 1; i++) {
-//         records[i] = records[i + 1];
-//     }
+    // Shift all subsequent records left to overwrite the deleted record
+    for (int i = index; i < *count - 1; i++) {
+        records[i] = records[i + 1];
+    }
     
-//     // Decrement the count
-//     (*count)--;
+    // Decrement the count
+    (*count)--;
     
-//     printf("CMS: DELETE successful (ID %d).\n", id);
+    printf("CMS: DELETE successful (ID %d).\n", id);
 
-//     return 1;
-// }
+    return 1;
+}
 
 
 
