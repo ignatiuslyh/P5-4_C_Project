@@ -269,52 +269,254 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // UPDATE ID FIELD VALUE
     // FIELD: N (name), P (programme), M (mark)
     // VALUE may contain spaces for N/P (we take rest of string)
+
     if (iequals(command, "UPDATE")) {
-        char buf[256];
-        strncpy(buf, local_args, sizeof(buf)-1);
-        char *tok = strtok(buf, " \t");
-        if (!tok) { printf("CMS: ERROR: Invalid UPDATE.\n"); return 1; }
-        int id = atoi(tok);
-        char *field = strtok(NULL, " \t");
-        char *value = strtok(NULL, "\n"); // rest of line
-        if (!field || !value) {
-            printf("CMS: ERROR: Invalid UPDATE. Use: UPDATE <ID> <N|P|M> <value>\n");
-            return 1;
-        }
-        char f = toupper((unsigned char)field[0]);
-        trim(value);
-        #ifdef HAVE_UPDATE_RECORD
-        if (!updateRecord(records, *count, id, f, value)) {
-            printf("CMS: ERROR: UPDATE failed (record not found or bad value).\n");
-        } else {
-            printf("CMS: UPDATE successful (ID %d).\n", id);
-        }
-        #else
-        int found = 0;
-        for (int i = 0; i < *count; ++i) {
-            if (records[i].id == id) {
-                found = 1;
-                if (f == 'N') {
-                    strncpy(records[i].name, value, STRING_LEN-1);
-                } else if (f == 'P') {
-                    strncpy(records[i].programme, value, STRING_LEN-1);
-                } else if (f == 'M') {
-                    float m;
-                    if (sscanf(value, "%f", &m) == 1) records[i].mark = m;
-                    else { printf("CMS: ERROR: Invalid mark.\n"); return 1; }
-                } else {
-                    printf("CMS: ERROR: Unknown field '%c'. Use N, P, or M.\n", f);
-                    return 1;
-                }
-                printf("CMS: UPDATE successful (ID %d).\n", id);
-                break;
-            }
-        }
-        if (!found) printf("CMS: ERROR: Record with ID %d not found.\n", id);
-        #endif
+
+   // copy args to local buffer (preserve case and spacing)
+    char src[256] = {0};
+    strncpy(src, local_args, sizeof(src) - 1);
+    size_t slen = strlen(src);
+
+    // find key positions in the original-cased src (case-sensitive)
+    char *p_id   = strstr(src, "ID=");
+    char *p_name = strstr(src, "Name=");
+    char *p_prog = strstr(src, "Programme=");
+    char *p_mark = strstr(src, "Mark=");
+
+    // check that user only update the record once at a time 
+    int field_count = 0;
+    if (p_name) field_count++;
+    if (p_prog) field_count++;
+    if (p_mark) field_count++;
+     if (field_count != 1) {
+        printf("CMS: ERROR: At least update ONE field (Name, Programme, or Mark).\n");
+        return 1;
+    } 
+
+    else if (field_count >= 1) {
+        printf("CMS: ERROR: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
+        return 1;
+    } 
+    // require exact case keys be present; otherwise error (simple behavior)
+    if (!p_id) {
+        printf("CMS: ERROR: UPDATE requires ID=\n");
         return 1;
     }
 
+     // convert pointers to integer indices
+    int idx_id   = (int)(p_id - src);
+    int idx_name = p_name ? (int)(p_name - src) : -1;
+    int idx_prog = p_prog ? (int)(p_prog - src) : -1;
+    int idx_mark = p_mark ? (int)(p_mark - src) : -1;
+
+  // buffers for extracted values
+    char idstr[32] = {0};
+    char namestr[STRING_LEN] = {0};
+    char progstr[STRING_LEN] = {0};
+    char markstr[32] = {0};
+
+    // extract the ID  by using the existing helper (preserve spaces)
+    extract_input(src, slen, idx_id, idx_id, idx_name, idx_prog, idx_mark,
+                  (int)strlen("ID="), sizeof(idstr), idstr);
+
+    int id;
+    if (sscanf(idstr, "%d", &id) != 1) {
+        printf("CMS: ERROR: Invalid ID.\n");
+        return 1;
+    }
+
+    // extract name field
+    if (idx_name != -1) {
+        extract_input(src, slen, idx_name, idx_id, idx_name, idx_prog, idx_mark,
+                      (int)strlen("Name="), sizeof(namestr), namestr);
+    }
+    // extract programme field
+    if (idx_prog != -1) {
+        extract_input(src, slen, idx_prog, idx_id, idx_name, idx_prog, idx_mark,
+                      (int)strlen("Programme="), sizeof(progstr), progstr);
+    }
+    // Extract the mark field
+    if (idx_mark != -1) {
+        extract_input(src, slen, idx_mark, idx_id, idx_name, idx_prog, idx_mark,
+                      (int)strlen("Mark="), sizeof(markstr), markstr);
+    }
+
+    // find matching record
+    int found = 0;
+    for (int i = 0; i < *count; ++i) {
+        if (records[i].id == id) {
+            found = 1;
+
+            // Update Name and validate whether the name  does not contain other character like @,#.!
+            if (idx_name != -1) {
+                if (!isValidNames(namestr)) {
+                    printf("CMS: ERROR: Invalid Name.\n");
+                    return 1;
+                }
+                strncpy(records[i].name, namestr, STRING_LEN - 1);
+            }
+
+            // Update Programme validate whether the programme does not contain other character like @,#.!
+            if (idx_prog != -1) {
+                if (!isValidNames(progstr)) {
+                    printf("CMS: ERROR: Invalid Programme.\n");
+                    return 1;
+                }
+                strncpy(records[i].programme, progstr, STRING_LEN - 1);
+            }
+
+            // Update Mark and validate that mark must be digit/float
+            if (idx_mark != -1) {
+                float m;
+                if (sscanf(markstr, "%f", &m) != 1 || m < 0 || m > 100) {
+                    printf("CMS: ERROR: Invalid Mark.\n");
+                    return 1;
+                }
+                records[i].mark = m;
+            }
+
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("CMS: The record with ID=%d does not exist.\n", id);
+    }
+
+    return 1;
+}
+
+    // if (iequals(command, "UPDATE")) {
+
+    //       // copy args to local buffer (preserve case and spacing)
+    //     char src[256] = {0};
+    //     strncpy(src, local_args, sizeof(src) - 1);
+    //     size_t slen = strlen(src);
+
+    //     // find key positions in the original-cased src (case-sensitive)
+    //     char *p_id   = strstr(src, "ID=");
+    //     char *p_name = strstr(src, "Name=");
+    //     char *p_prog = strstr(src, "Programme=");
+    //     char *p_mark = strstr(src, "Mark=");
+
+    //     // require exact case keys be present; otherwise error (simple behavior)
+    //     if (!p_id || !p_name || !p_prog || !p_mark) {
+    //         printf("CMS: ERROR: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
+    //         return 1;
+    //     }
+
+    //     // convert pointers to integer indices
+    //     int idx_id   = (int)(p_id - src);
+    //     int idx_name = (int)(p_name - src);
+    //     int idx_prog = (int)(p_prog - src);
+    //     int idx_mark = (int)(p_mark - src);
+
+    //     // buffers for extracted values
+    //     char idstr[32] = {0};
+    //     char namestr[STRING_LEN] = {0};
+    //     char progstr[STRING_LEN] = {0};
+    //     char markstr[32] = {0};
+
+    //     // extract each value using the existing helper (preserve spaces)
+    //     extract_input(src, slen, idx_id,   idx_id, idx_name, idx_prog, idx_mark, (int)strlen("ID="),        sizeof(idstr),   idstr);
+    //     extract_input(src, slen, idx_name, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Name="),      sizeof(namestr), namestr);
+    //     extract_input(src, slen, idx_prog, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Programme="), sizeof(progstr), progstr);
+    //     extract_input(src, slen, idx_mark, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Mark="),      sizeof(markstr), markstr);
+
+    //     // validate required fields are not empty
+    //     if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
+    //         printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
+    //         return 1;
+    //     }
+
+    //     // validate characters in Name and Programme
+    //     if (!isValidNames(namestr)) {
+    //         printf("CMS: ERROR: Invalid characters in Name. Allowed: letters, space, -, ', .\n");
+    //         return 1;
+    //     }
+    //     if (!isValidNames(progstr)) {
+    //         printf("CMS: ERROR: Invalid characters in Programme. Allowed: letters, space, -, ', .\n");
+    //         return 1;
+    //     }
+
+    //     // parse numeric values safely
+    //     int id = 0;
+    //     float mark = 0.0f;
+    //     if (sscanf(idstr, "%d", &id) != 1) {
+    //         printf("CMS: ERROR: Invalid ID value.\n");
+    //         return 1;
+    //     }
+    //     if (sscanf(markstr, "%f", &mark) != 1) {
+    //         printf("CMS: ERROR: Invalid Mark value.\n");
+    //         return 1;
+    //     }
+    //     // enforce mark range [0.0, 100.0]
+    //     if (mark < 0.0f || mark > 100.0f) {
+    //         printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
+    //         return 1;
+    //     }
+
+    //     // char buf[256];
+    //     // strncpy(buf, local_args, sizeof(buf)-1);
+    //     // char *tok = strtok(buf, " \t");
+    //     // if (!tok) { printf("CMS: ERROR: Invalid UPDATE.\n"); return 1; }
+    //     // int id = atoi(tok);
+    //     // char *field = strtok(NULL, " \t");
+    //     // char *value = strtok(NULL, "\n"); // rest of line
+    //     // if (!field || !value) {
+    //     //     printf("CMS: ERROR: Invalid UPDATE. Use: UPDATE <ID> <N|P|M> <value>\n");
+    //     //     return 1;
+    //     // }
+    //     // char f = toupper((unsigned char)field[0]);
+    //     // trim(value);
+    //     // #ifdef HAVE_UPDATE_RECORD
+    //     // if (!updateRecord(records, *count, id, f, value)) {
+    //     //     printf("CMS: ERROR: UPDATE failed (record not found or bad value).\n");
+    //     // } else {
+    //     //     printf("CMS: UPDATE successful (ID %d).\n", id);
+    //     // }
+    //     // #else
+    //     int found = 0;
+    //     for (int i = 0; i < *count; ++i) {
+    //         if (records[i].id == id) {
+    //             found = 1;
+    //             if (iequals(field,"Name")) {
+    //                 if (isValidNames(value) ){
+    //                     strncpy(records[i].name, value, STRING_LEN-1);
+    //                     printf("CMS: UPDATE successful (ID %d).\n", id);
+    //                 }
+    //                 else{
+    //                     printf("CMS: INVALID name type\n");
+    //                 }
+    //             } else if (iequals(field,"Programme")) {
+
+    //                 if (isValidNames(value)){
+    //                     strncpy(records[i].programme, value, STRING_LEN-1);
+    //                     printf("CMS: UPDATE successful (ID %d).\n", id);
+    //                 }
+    //                 else{
+    //                     printf("CMS: INVALID Programme \n");
+    //                 }
+
+                   
+    //             } else if (iequals(field,"Mark")) {
+    //                 float m;
+    //                 if (sscanf(value, "%f", &m) == 1) records[i].mark = m;
+    //                 else { printf("CMS: ERROR: Invalid mark.\n"); return 1; }
+    //             } else {
+    //                 printf("CMS: ERROR: Unknown field '%c'. Use Name, Programme, or Mark.\n", f);
+    //                 return 1;
+    //             }
+    //             // printf("CMS: UPDATE successful (ID %d).\n", id);
+    //             break;
+    //         }
+    //     }
+    //     if (!found) 
+    //     printf("CMS: The record with ID=%d does not exist.\n", id);
+    //     #endif
+    //     return 1;
+    // }
     // DELETE ID
     if (iequals(command, "DELETE")) {
         int id;

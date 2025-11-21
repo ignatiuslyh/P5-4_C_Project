@@ -134,8 +134,7 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRe
 // //  - RETURN 1
 
 
-int updateRecord(StudentRecord records[], int count, int id, char field, char *newValue) {
-
+int updateRecord(StudentRecord records[], int count, int id, char *field, char *newValue) {
 
     // 1. Find the record index.
     int index = findRecordById(records, count, id);
@@ -143,28 +142,40 @@ int updateRecord(StudentRecord records[], int count, int id, char field, char *n
     // check whether the record is found in database
     if (index != -1)
     {
-       switch (field) {
-        case 'N' :
-            strcpy(records[index].name, (char*)newValue);
-           printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        case 'P' :
-            strcpy(records[index].programme, (char*)newValue);
-           printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        case 'M' :
+    // 3. Apply the update based on 'field'.
+        if (strcmp(field, "Name") == 0)
+        {
+                strcpy(records[index].name, newValue);
+                //printf("CMS: The record with ID=%d is successfully updated.\n",id);
+        }
+           
+        else if (strcmp(field, "Programme") == 0)
+        {
+            strcpy(records[index].programme, newValue);
+           // printf("CMS: The record with ID=%d is successfully updated.\n",id);
+        }
+        else if(strcmp(field, "Mark") == 0)
+        {
             records[index].mark = atof(newValue);
-            printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        default:
-            printf("CMS: ERROR: Invalid field for update.");
-            return -1;
+            //printf("CMS: The record with ID=%d is successfully updated.\n",id);
+        }
+        else
+        {
+            printf("CMS:Invalid field for update.");
+            return 0;
+        }
+    
        }
-    }
+    
     // No existing record with the student ID found in database
-    else
-    {
-         printf("CMS: The record with ID= %d does not exist.\n", id);
+        else
+        {
+        // printf("CMS: The record with ID=%d does not exist.\n", id);
+         return 0;
+        }
+
+    //4. Success.
+    return 1; 
     }
     // 3. Apply the update based on 'field'.
    // switch (field) {
@@ -202,9 +213,7 @@ int updateRecord(StudentRecord records[], int count, int id, char field, char *n
             return -1;*/
     //}
    
-    //4. Success.
-    return 1; 
-}
+
 
 // int deleteRecord(StudentRecord records[], int *count, int id) {
     
