@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h> 
 
 #include "database.h"
@@ -7,6 +8,8 @@
 #include "sort.h"
 #include "summary.h"
 #include "banner.h"
+#include "query.h"
+#include "history.h"
 
 
 // UTILITY FUNCTION: displayPrompt
@@ -94,14 +97,14 @@ static int fallback_query(const StudentRecord records[], int count, int id) {
 }
 
 
-int processCommand(const char *command, char *args, StudentRecord records[], int *count, const char *default_filename) {
+int processCommand(const char* command, char* args, StudentRecord records[], int* count, const char* default_filename) {
     if (!command || !records || !count) {
         printf("CMS: ERROR: Internal error (bad parameters).\n");
         return 1;
     }
 
     // Make a writable, trimmed copy of args for parsing
-    char local_args[256] = {0};
+    char local_args[256] = { 0 };
     if (args && *args) {
         strncpy(local_args, args, sizeof(local_args) - 1);
         trim(local_args);
@@ -109,9 +112,12 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
     // OPEN 
     if (iequals(command, "OPEN")) {
-        const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
+        const char* file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = loadDB(file, records, count);
-        if (rc == 1) printf("CMS: The database file \"%s\" is successfully opened.\n", file);
+        if (rc == 1) {
+            printf("CMS: The database file \"%s\" is successfully opened.\n", file);
+            addHistory("OPEN: Opened database file");
+        }
         else printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
         return 1;
     }
@@ -119,45 +125,95 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // SAVE 
     if (iequals(command, "SAVE")) {
         // Ignore any filename supplied by user; always use default_filename
-        const char *file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
+        const char* file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = saveDB(file, records, *count);
-        if (rc == 1) printf("CMS: SAVE successful (%s).\n", file);
+        if (rc == 1) {
+            printf("CMS: SAVE successful (%s).\n", file);
+            addHistory("SAVE: Saved database file");
+        }
         else printf("CMS: ERROR: SAVE unsuccessful for '%s'.\n", file);
         return 1;
     }
-/*
-    // INSERT ID Name Programme Mark
-    // (Name and Programme must not contain spaces)
-    if (iequals(command, "INSERT")) {
-        int id;
-        char name[STRING_LEN] = {0};
-        char programme[STRING_LEN] = {0};
-        float mark;
-        if (sscanf(local_args, "%d %49s %49s %f", &id, name, programme, &mark) == 4) {
-            if (*count >= MAX_RECORDS) {
-                printf("CMS: ERROR: Database full.\n");
-                return 1;
-            }
-            StudentRecord sr = { .id = id, .mark = mark };
-            strncpy(sr.name, name, STRING_LEN-1);
-            strncpy(sr.programme, programme, STRING_LEN-1);
-            #ifdef HAVE_INSERT_RECORD
-            if (!insertRecord(records, count, sr)) {
-                printf("CMS: ERROR: INSERT failed.\n");
-            } else {
+
+    /*
+        // INSERT ID Name Programme Mark
+        // (Name and Programme must not contain spaces)
+        if (iequals(command, "INSERT")) {
+            int id;
+            char name[STRING_LEN] = {0};
+            char programme[STRING_LEN] = {0};
+            float mark;
+            if (sscanf(local_args, "%d %49s %49s %f", &id, name, programme, &mark) == 4) {
+                if (*count >= MAX_RECORDS) {
+                    printf("CMS: ERROR: Database full.\n");
+                    return 1;
+                }
+                StudentRecord sr = { .id = id, .mark = mark };
+                strncpy(sr.name, name, STRING_LEN-1);
+                strncpy(sr.programme, programme, STRING_LEN-1);
+                #ifdef HAVE_INSERT_RECORD
+                if (!insertRecord(records, count, sr)) {
+                    printf("CMS: ERROR: INSERT failed.\n");
+                } else {
+                    printf("CMS: INSERT successful (ID %d).\n", id);
+                }
+                #else
+                records[*count] = sr;
+                (*count)++;
                 printf("CMS: INSERT successful (ID %d).\n", id);
+                #endif
+            } else {
+                printf("CMS: ERROR: Invalid INSERT. Use: INSERT <ID> <Name> <Programme> <Mark>\n");
             }
-            #else
-            records[*count] = sr;
-            (*count)++;
-            printf("CMS: INSERT successful (ID %d).\n", id);
-            #endif
-        } else {
-            printf("CMS: ERROR: Invalid INSERT. Use: INSERT <ID> <Name> <Programme> <Mark>\n");
+            return 1;
+        }
+
+        */
+
+        // QUERY
+        // Uses ID to search for record
+    if (iequals(command, "QUERY")) {
+
+        char buf[256];
+        strncpy(buf, local_args, sizeof(buf) - 1);
+        buf[sizeof(buf) - 1] = '\0';
+        // Catch unexpected spaces by removing all spaces
+        char clean[256];
+        int j = 0;
+        for (int i = 0; buf[i] != '\0' && j < 255; i++) {
+            if (!isspace((unsigned char)buf[i])) {
+                clean[j++] = buf[i];
+            }
+        }
+        clean[j] = '\0';
+        // Modified ID search based on the expected format
+        char* id_str = strstr(clean, "ID=");
+        if (!id_str) {
+            id_str = strstr(clean, "id=");
+        }
+        if (id_str) {
+            int id = atoi(id_str + 3);
+            int found = queryRecord(records, *count, id);
+
+            // Add to history - track both successful and failed queries
+            if (found) {
+                char msg[HISTORY_DESC_LEN];
+                snprintf(msg, sizeof(msg), "QUERY: Found record ID=%d", id);
+                addHistory(msg);
+            }
+            else {
+                char msg[HISTORY_DESC_LEN];
+                snprintf(msg, sizeof(msg), "QUERY: Attempted search for ID=%d (not found)", id);
+                addHistory(msg);
+            }
+        }
+        else {
+            printf("CMS: ERROR: Invalid QUERY format. Use: QUERY ID=<student_id>\n");
         }
         return 1;
     }
 
+    /*
     // QUERY ID
     if (iequals(command, "QUERY")) {
         int id;
@@ -224,103 +280,132 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 */
-    // DELETE ID
+// DELETE ID
     if (iequals(command, "DELETE")) {
         int id;
         if (sscanf(local_args, "%d", &id) == 1) {
             printf("Are you sure you want to delete ID %d? (Y/N): ", id);
             fflush(stdout);
-            char resp[8] = {0};
+            char resp[8] = { 0 };
             if (!fgets(resp, sizeof(resp), stdin)) { printf("\nCMS: ERROR: No response; delete cancelled.\n"); return 1; }
             if (resp[0] == 'Y' || resp[0] == 'y') {
-                #ifdef HAVE_DELETE_RECORD
+#ifdef HAVE_DELETE_RECORD
                 if (!deleteRecord(records, count, id)) printf("CMS: ERROR: DELETE failed (not found).\n");
-                else printf("CMS: DELETE successful (ID %d).\n", id);
-                #else
+                else {
+                    printf("CMS: DELETE successful (ID %d).\n", id);
+                    char msg[HISTORY_DESC_LEN];
+                    snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
+                    addHistory(msg);
+                }
+#else
                 int found = 0;
                 for (int i = 0; i < *count; ++i) {
                     if (records[i].id == id) {
                         found = 1;
-                        for (int j = i; j + 1 < *count; ++j) records[j] = records[j+1];
+                        for (int j = i; j + 1 < *count; ++j) records[j] = records[j + 1];
                         (*count)--;
                         printf("CMS: DELETE successful (ID %d).\n", id);
                         break;
                     }
                 }
                 if (!found) printf("CMS: ERROR: DELETE failed (not found).\n");
-                #endif
-            } else {
+                else {
+                    char msg[HISTORY_DESC_LEN];
+                    snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
+                    addHistory(msg);
+                }
+#endif
+            }
+            else {
                 printf("CMS: DELETE cancelled.\n");
             }
-        } else {
+        }
+        else {
             printf("CMS: ERROR: Invalid DELETE. Use: DELETE <ID>\n");
         }
         return 1;
     }
 
-       // SHOW ALL | SHOW ALL SORT BY ID | SHOW ALL SORT BY MARK | SHOW SUMMARY
-    if (iequals(command, "SHOW")) {
-        // copy and trim arguments
-        char buf[128];
-        strncpy(buf, local_args, sizeof(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
-        trim(buf);
 
-        // SHOW or SHOW ALL
-        if (buf[0] == '\0' || iequals(buf, "ALL")) {
-            showAllRecords(records, *count);
-            return 1;
-        }
+        // SHOW ALL | SHOW ALL SORT BY ID | SHOW ALL SORT BY MARK | SHOW SUMMARY
+        if (iequals(command, "SHOW")) {
+            // copy and trim arguments
+            char buf[128];
+            strncpy(buf, local_args, sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+            trim(buf);
 
-        // SHOW SUMMARY
-        if (iequals(buf, "SUMMARY")) {
-            showSummary(records, *count);
-            return 1;
-        }
-
-        // parse into up to 5 tokens
-        char t1[16] = {0}, t2[16] = {0}, t3[16] = {0}, t4[16] = {0}, t5[16] = {0};
-        int n = sscanf(buf, "%15s %15s %15s %15s %15s", t1, t2, t3, t4, t5);
-
-        // expect: ALL SORT BY <FIELD> [ORDER]
-        if (n >= 4 && iequals(t1, "ALL") && iequals(t2, "SORT") && iequals(t3, "BY")) {
-            char *field = t4;
-            char *order = (n >= 5) ? t5 : NULL;
-
-            if (!iequals(field, "ID") && !iequals(field, "MARK")) {
-                printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", field);
+            // SHOW or SHOW ALL
+            if (buf[0] == '\0' || iequals(buf, "ALL")) {
+                showAllRecords(records, *count);
+                addHistory("SHOW ALL: Displayed all records");
                 return 1;
             }
 
-            int by_id = iequals(field, "ID") ? 1 : 0;
-            int asc = 1; // default ascending
-            if (order) {
-                if (iequals(order, "DESC")) asc = 0;
-                else if (iequals(order, "ASC")) asc = 1;
-                else {
-                    printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", order);
-                    return 1;
-                }
+            // SHOW SUMMARY
+            if (iequals(buf, "SUMMARY")) {
+                showSummary(records, *count);
+                return 1;
             }
 
-            sort_and_print(records, *count, by_id, asc);
+            // parse into up to 5 tokens
+            char t1[16] = { 0 }, t2[16] = { 0 }, t3[16] = { 0 }, t4[16] = { 0 }, t5[16] = { 0 };
+            int n = sscanf(buf, "%15s %15s %15s %15s %15s", t1, t2, t3, t4, t5);
+
+            // expect: ALL SORT BY <FIELD> [ORDER]
+            if (n >= 4 && iequals(t1, "ALL") && iequals(t2, "SORT") && iequals(t3, "BY")) {
+                char* field = t4;
+                char* order = (n >= 5) ? t5 : NULL;
+
+                if (!iequals(field, "ID") && !iequals(field, "MARK")) {
+                    printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", field);
+                    return 1;
+                }
+
+                int by_id = iequals(field, "ID") ? 1 : 0;
+                int asc = 1; // default ascending
+                if (order) {
+                    if (iequals(order, "DESC")) asc = 0;
+                    else if (iequals(order, "ASC")) asc = 1;
+                    else {
+                        printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", order);
+                        return 1;
+                    }
+                }
+
+                sort_and_print(records, *count, by_id, asc);
+                return 1;
+            }
+
+            printf("CMS: ERROR: Invalid SHOW command.\n");
             return 1;
         }
 
-        printf("CMS: ERROR: Invalid SHOW command.\n");
+        // HISTORY
+        // Show last 20 (max)
+        if (iequals(command, "HISTORY")) {
+            int n = 5; // default
+            if (local_args[0] != '\0') {
+                n = atoi(local_args);
+                if (n <= 0) n = 5; // fallback to default
+            }
+            showHistory(n);
+            return 1;
+        }
+
+        // EXIT / QUIT
+        if (iequals(command, "EXIT") || iequals(command, "QUIT")) {
+            printf("DEBUG: Checking EXIT/QUIT. Command is: '%s'\n", command);
+            printf("CMS: Program exiting.\n");
+            saveHistoryToFile();
+            return 0;
+        }
+
+        // Unknown command
+        printf("CMS: ERROR: Unknown command '%s'.\n", command);
         return 1;
     }
 
-    // EXIT / QUIT
-    if (iequals(command, "EXIT") || iequals(command, "QUIT")) {
-        printf("CMS: Program exiting.\n");
-        return 0;
-    }
-
-    // Unknown command
-    printf("CMS: ERROR: Unknown command '%s'.\n", command);
-    return 1;
-}
 
 int main(void) {
     StudentRecord records[MAX_RECORDS];    
@@ -333,6 +418,8 @@ int main(void) {
     char arguments[ARGS_LEN];
 
     int running = 1;
+
+    initHistory(); // Initialise History Function
 
     if (loadDB(filename, records, &record_count) == 1) {
         printBanner();
@@ -365,6 +452,8 @@ int main(void) {
     }
 
     printf("CMS: Program exiting. If you want to save changes run 'SAVE' before exit next time.\n");
+
+    saveHistoryToFile();
 
     return 0;
 }

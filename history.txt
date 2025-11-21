@@ -1,0 +1,6 @@
+1763722058	OPEN: Opened database file
+1763722061	SHOW ALL: Displayed all records
+1763722092	QUERY: Found record ID=2301234
+1763722194	SHOW ALL: Displayed all records
+1763722201	OPEN: Opened database file
+1763722202	SHOW ALL: Displayed all records
