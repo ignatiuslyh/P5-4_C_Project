@@ -2,7 +2,7 @@
 #include <string.h>
 #include <ctype.h> 
 #include <stdlib.h>
-
+#include <math.h>
 #include "database.h"
 #include "records.h"
 #include "sort.h"
@@ -269,70 +269,131 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // UPDATE ID FIELD VALUE
     // FIELD: N (name), P (programme), M (mark)
     // VALUE may contain spaces for N/P (we take rest of string)
- // UPDATE ID FIELD VALUE
-    // FIELD: N (name), P (programme), M (mark)
-    // VALUE may contain spaces for N/P (we take rest of string)
-    if (iequals(command, "UPDATE")) {
-        char buf[256];
-        strncpy(buf, local_args, sizeof(buf)-1);
-        char *tok = strtok(buf, " \t");
-        if (!tok) { printf("CMS: ERROR: Invalid UPDATE.\n"); return 1; }
-        int id = atoi(tok);
-        char *field = strtok(NULL, " \t");
-        char *value = strtok(NULL, "\n"); // rest of line
-        if (!field || !value) {
-            printf("CMS: ERROR: Invalid UPDATE. Use: UPDATE <ID> <N|P|M> <value>\n");
-            return 1;
-        }
-        char f = toupper((unsigned char)field[0]);
-        trim(value);
-        #ifdef HAVE_UPDATE_RECORD
-        if (!updateRecord(records, *count, id, f, value)) {
-            printf("CMS: ERROR: UPDATE failed (record not found or bad value).\n");
-        } else {
-            printf("CMS: UPDATE successful (ID %d).\n", id);
-        }
-        #else
-        int found = 0;
-        for (int i = 0; i < *count; ++i) {
-            if (records[i].id == id) {
-                found = 1;
-                if (iequals(field,"Name")) {
-                    if (isValidNames(value) ){
-                        strncpy(records[i].name, value, STRING_LEN-1);
-                        printf("CMS: UPDATE successful (ID %d).\n", id);
-                    }
-                    else{
-                        printf("CMS: INVALID name Type\n");
-                    }
-                } else if (iequals(field,"Programme")) {
+if (iequals(command, "UPDATE")) {
 
-                    if (isValidNames(value)){
-                        strncpy(records[i].programme, value, STRING_LEN-1);
-                        printf("CMS: UPDATE successful (ID %d).\n", id);
-                    }
-                    else{
-                        printf("CMS: INVALID Programme \n");
-                    }
+    const char *src = local_args;
+    size_t slen = strlen(src);
 
-                   
-                } else if (iequals(field,"Mark")) {
-                    float m;
-                    if (sscanf(value, "%f", &m) == 1) records[i].mark = m;
-                    else { printf("CMS: ERROR: Invalid mark.\n"); return 1; }
-                } else {
-                    printf("CMS: ERROR: Unknown field '%c'. Use Name, Programme, or Mark.\n", f);
-                    return 1;
-                }
-                // printf("CMS: UPDATE successful (ID %d).\n", id);
-                break;
-            }
-        }
-        if (!found) 
-        printf("CMS: The record with ID=%d does not exist.\n", id);
-        #endif
+  // find key positions in the original-cased src (case-sensitive)
+    const char *p_id  = strstr(src, "ID=");
+    const char *p_name = strstr(src, "Name=");
+    const char *p_prog = strstr(src, "Programme=");
+    const char *p_mark = strstr(src, "Mark=");
+
+
+
+    if (!p_id) {
+        printf("CMS: UPDATE requires ID=\n");
         return 1;
     }
+
+    // convert pointers to integer indices
+    int idx_id  = p_id  ? (int)(p_id  - src) : -1;
+    int idx_name = p_name ? (int)(p_name - src) : -1;
+    int idx_prog = p_prog ? (int)(p_prog - src) : -1;
+    int idx_mark = p_mark ? (int)(p_mark - src) : -1;
+
+    int field_count = 0;
+    if (p_name) field_count++;
+    if (p_prog) field_count++;
+    if (p_mark) field_count++;
+
+    if (field_count == 0) {
+        printf("CMS:At least ONE field must be updated (Name, Programme, or Mark).\n");
+        return 1;
+    }
+
+    if (field_count > 1) {
+        printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
+        return 1;
+    }
+
+     // buffers for extracted values
+    char id_buf[32] = {0};
+    char name_buf[128] = {0};
+    char prog_buf[64] = {0};
+    char mark_buf[32] = {0};
+
+    // Extract ID
+    extract_input(src, slen,
+                  idx_id, idx_id, idx_name, idx_prog, idx_mark,
+                  3, sizeof(id_buf), id_buf);
+
+    int id = atoi(id_buf);
+
+    // Extract Name
+    if (idx_name != -1) {
+        extract_input(src, slen,
+                      idx_name, idx_id, idx_name, idx_prog, idx_mark,
+                      5, sizeof(name_buf), name_buf);
+    }
+
+    // Extract Programme
+    if (idx_prog != -1) {
+        extract_input(src, slen,
+                      idx_prog, idx_id, idx_name, idx_prog, idx_mark,
+                      10, sizeof(prog_buf), prog_buf);
+    }
+
+    // Extract Mark
+    if (idx_mark != -1) {
+        extract_input(src, slen,
+                      idx_mark, idx_id, idx_name, idx_prog, idx_mark,
+                      5, sizeof(mark_buf), mark_buf);
+    }
+
+    // Now perform updates
+    int found = 0;
+    for (int i = 0; i < *count; ++i) {
+        if (records[i].id == id) {
+                found = 1;
+                // validate characters in Name 
+                if (idx_name != -1) {
+                    if (!isValidNames(name_buf)) {
+                        printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
+                        return 1;
+                    }
+                    strncpy(records[i].name, name_buf, STRING_LEN-1);
+                }
+            // validate characters in Programme
+        
+            if (idx_prog != -1) {
+                if (!isValidNames(prog_buf)) {
+                     printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
+                    return 1;
+                }
+                strncpy(records[i].programme, prog_buf, STRING_LEN-1);
+            }
+            // validate marks field to not contain letter and between 0 to 100
+            if (idx_mark != -1) {
+                float m;
+                if (sscanf(mark_buf, "%f", &m) != 1) {
+                    printf("CMS: Invalid Mark type\n");
+                    return 1;
+                }
+
+                if (m < 0 || m > 100) {
+                    printf("CMS: ERROR: Mark out of range (0-100)\n");
+                    return 1;
+                
+                }
+                // round marks to 1D.P
+                m = round(m * 10) / 10.0;
+                records[i].mark = m;
+            }
+
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("CMS: The record with ID=%d does not exist.\n", id);
+    }
+
+    return 1;
+}
+
 
     // DELETE ID
     if (iequals(command, "DELETE")) {
