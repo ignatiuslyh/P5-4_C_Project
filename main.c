@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h> 
+#include <stdlib.h>
 
 #include "database.h"
 #include "records.h"
@@ -96,8 +97,43 @@ static int fallback_query(const StudentRecord records[], int count, int id) {
     return 0;
 }
 
+static void extract_input(const char *src, size_t slen,
+                              int start_idx,
+                              int idx_id, int idx_name, int idx_prog, int idx_mark,
+                              int key_len, int out_size, char *out_buf)
+{
+    // compute start (after key=) in original src to preserve spacing/case
+    int start = start_idx + key_len;
+    // compute end as the nearest key position after start, or slen
+    int end = (int)slen;
+    if (idx_id  > start_idx && idx_id  < end) end = idx_id;
+    if (idx_name> start_idx && idx_name< end) end = idx_name;
+    if (idx_prog> start_idx && idx_prog< end) end = idx_prog;
+    if (idx_mark> start_idx && idx_mark< end) end = idx_mark;
+    // trim leading spaces
+    while (start < end && isspace((unsigned char)src[start])) start++;
+    // trim trailing spaces
+    while (end > start && isspace((unsigned char)src[end - 1])) end--;
+    // copy bounded
+    int vlen = end - start;
+    if (vlen >= out_size) vlen = out_size - 1;
+    if (vlen > 0) memcpy(out_buf, src + start, (size_t)vlen);
+    out_buf[vlen] = '\0';
+}
 
-int processCommand(const char* command, char* args, StudentRecord records[], int* count, const char* default_filename) {
+static int isValidNames(const char *name) {
+    if (!name) return 0;
+    for (int i = 0; name[i] != '\0'; ++i) {
+        unsigned char c = (unsigned char)name[i];
+        // Allow letters, space, hyphen, apostrophe, and period
+        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.') {
+            return 0; // invalid character found
+        }
+    }
+    return 1; // all characters are valid
+}
+
+int processCommand(const char *command, char *args, StudentRecord records[], int *count, const char *default_filename) {
     if (!command || !records || !count) {
         printf("CMS: ERROR: Internal error (bad parameters).\n");
         return 1;
@@ -135,38 +171,91 @@ int processCommand(const char* command, char* args, StudentRecord records[], int
         return 1;
     }
 
-    /*
-        // INSERT ID Name Programme Mark
-        // (Name and Programme must not contain spaces)
-        if (iequals(command, "INSERT")) {
-            int id;
-            char name[STRING_LEN] = {0};
-            char programme[STRING_LEN] = {0};
-            float mark;
-            if (sscanf(local_args, "%d %49s %49s %f", &id, name, programme, &mark) == 4) {
-                if (*count >= MAX_RECORDS) {
-                    printf("CMS: ERROR: Database full.\n");
-                    return 1;
-                }
-                StudentRecord sr = { .id = id, .mark = mark };
-                strncpy(sr.name, name, STRING_LEN-1);
-                strncpy(sr.programme, programme, STRING_LEN-1);
-                #ifdef HAVE_INSERT_RECORD
-                if (!insertRecord(records, count, sr)) {
-                    printf("CMS: ERROR: INSERT failed.\n");
-                } else {
-                    printf("CMS: INSERT successful (ID %d).\n", id);
-                }
-                #else
-                records[*count] = sr;
-                (*count)++;
-                printf("CMS: INSERT successful (ID %d).\n", id);
-                #endif
-            } else {
-                printf("CMS: ERROR: Invalid INSERT. Use: INSERT <ID> <Name> <Programme> <Mark>\n");
-            }
+    // INSERT ID Name Programme Mark
+    // (Name and Programme must not contain spaces)
+    if (iequals(command, "INSERT")) {
+        // copy args to local buffer (preserve case and spacing)
+        char src[256] = {0};
+        strncpy(src, local_args, sizeof(src) - 1);
+        size_t slen = strlen(src);
+
+        // find key positions in the original-cased src (case-sensitive)
+        char *p_id   = strstr(src, "ID=");
+        char *p_name = strstr(src, "Name=");
+        char *p_prog = strstr(src, "Programme=");
+        char *p_mark = strstr(src, "Mark=");
+
+        // require exact case keys be present; otherwise error (simple behavior)
+        if (!p_id || !p_name || !p_prog || !p_mark) {
+            printf("CMS: ERROR: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
             return 1;
         }
+
+        // convert pointers to integer indices
+        int idx_id   = (int)(p_id - src);
+        int idx_name = (int)(p_name - src);
+        int idx_prog = (int)(p_prog - src);
+        int idx_mark = (int)(p_mark - src);
+
+        // buffers for extracted values
+        char idstr[32] = {0};
+        char namestr[STRING_LEN] = {0};
+        char progstr[STRING_LEN] = {0};
+        char markstr[32] = {0};
+
+        // extract each value using the existing helper (preserve spaces)
+        extract_input(src, slen, idx_id,   idx_id, idx_name, idx_prog, idx_mark, (int)strlen("ID="),        sizeof(idstr),   idstr);
+        extract_input(src, slen, idx_name, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Name="),      sizeof(namestr), namestr);
+        extract_input(src, slen, idx_prog, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Programme="), sizeof(progstr), progstr);
+        extract_input(src, slen, idx_mark, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Mark="),      sizeof(markstr), markstr);
+
+        // validate required fields are not empty
+        if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
+            printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
+            return 1;
+        }
+
+        // validate characters in Name and Programme
+        if (!isValidNames(namestr)) {
+            printf("CMS: ERROR: Invalid characters in Name. Allowed: letters, space, -, ', .\n");
+            return 1;
+        }
+        if (!isValidNames(progstr)) {
+            printf("CMS: ERROR: Invalid characters in Programme. Allowed: letters, space, -, ', .\n");
+            return 1;
+        }
+
+        // parse numeric values safely
+        int id = 0;
+        float mark = 0.0f;
+        if (sscanf(idstr, "%d", &id) != 1) {
+            printf("CMS: ERROR: Invalid ID value.\n");
+            return 1;
+        }
+        if (sscanf(markstr, "%f", &mark) != 1) {
+            printf("CMS: ERROR: Invalid Mark value.\n");
+            return 1;
+        }
+        // enforce mark range [0.0, 100.0]
+        if (mark < 0.0f || mark > 100.0f) {
+            printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
+            return 1;
+        }
+
+        // build record and insert
+        StudentRecord sr;
+        sr.id = id;
+        strncpy(sr.name, namestr, STRING_LEN - 1); sr.name[STRING_LEN - 1] = '\0';
+        strncpy(sr.programme, progstr, STRING_LEN - 1); sr.programme[STRING_LEN - 1] = '\0';
+        sr.mark = mark;
+
+        if (!insertRecord(records, count, &sr)) {
+            // insertRecord prints an error (duplicate or full)
+        } else {
+            printf("CMS: INSERT successful (ID %d).\n", id);
+        }
+        return 1;
+    }
 
         */
 
@@ -230,7 +319,7 @@ int processCommand(const char* command, char* args, StudentRecord records[], int
         }
         return 1;
     }
-
+*/
     // UPDATE ID FIELD VALUE
     // FIELD: N (name), P (programme), M (mark)
     // VALUE may contain spaces for N/P (we take rest of string)
