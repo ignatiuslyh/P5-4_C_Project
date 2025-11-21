@@ -2,7 +2,7 @@
 #include <string.h>
 #include <ctype.h> 
 #include <stdlib.h>
-
+#include <math.h>
 #include "database.h"
 #include "records.h"
 #include "sort.h"
@@ -123,7 +123,7 @@ static int isValidNames(const char *name) {
     for (int i = 0; name[i] != '\0'; ++i) {
         unsigned char c = (unsigned char)name[i];
         // Allow letters, space, hyphen, apostrophe, and period
-        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.') {
+        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.' && c != '('&& c != ')') {
             return 0; // invalid character found
         }
     }
@@ -227,12 +227,15 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             printf("CMS: ERROR: Invalid Mark value.\n");
             return 1;
         }
+        // round up to 1 decimal point
+         mark = round(mark * 10) / 10.0;
         // enforce mark range [0.0, 100.0]
         if (mark < 0.0f || mark > 100.0f) {
             printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
             return 1;
         }
-
+         
+               
         // build record and insert
         StudentRecord sr;
         sr.id = id;
@@ -266,54 +269,130 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 */
-    // UPDATE ID FIELD VALUE
-    // FIELD: N (name), P (programme), M (mark)
-    // VALUE may contain spaces for N/P (we take rest of string)
+    // UPDATE ID= <ID> FIELD =<VALUE>
     if (iequals(command, "UPDATE")) {
-        char buf[256];
-        strncpy(buf, local_args, sizeof(buf)-1);
-        char *tok = strtok(buf, " \t");
-        if (!tok) { printf("CMS: ERROR: Invalid UPDATE.\n"); return 1; }
-        int id = atoi(tok);
-        char *field = strtok(NULL, " \t");
-        char *value = strtok(NULL, "\n"); // rest of line
-        if (!field || !value) {
-            printf("CMS: ERROR: Invalid UPDATE. Use: UPDATE <ID> <N|P|M> <value>\n");
-            return 1;
-        }
-        char f = toupper((unsigned char)field[0]);
-        trim(value);
-        #ifdef HAVE_UPDATE_RECORD
-        if (!updateRecord(records, *count, id, f, value)) {
-            printf("CMS: ERROR: UPDATE failed (record not found or bad value).\n");
-        } else {
-            printf("CMS: UPDATE successful (ID %d).\n", id);
-        }
-        #else
-        int found = 0;
-        for (int i = 0; i < *count; ++i) {
-            if (records[i].id == id) {
-                found = 1;
-                if (f == 'N') {
-                    strncpy(records[i].name, value, STRING_LEN-1);
-                } else if (f == 'P') {
-                    strncpy(records[i].programme, value, STRING_LEN-1);
-                } else if (f == 'M') {
-                    float m;
-                    if (sscanf(value, "%f", &m) == 1) records[i].mark = m;
-                    else { printf("CMS: ERROR: Invalid mark.\n"); return 1; }
-                } else {
-                    printf("CMS: ERROR: Unknown field '%c'. Use N, P, or M.\n", f);
-                    return 1;
-                }
-                printf("CMS: UPDATE successful (ID %d).\n", id);
-                break;
-            }
-        }
-        if (!found) printf("CMS: ERROR: Record with ID %d not found.\n", id);
-        #endif
+    
+    size_t slen = strlen(local_args);
+
+  // find key positions in the original-cased local_args (case-sensitive)
+    const char *p_id  = strstr(local_args, "ID=");
+    const char *p_name = strstr(local_args, "Name=");
+    const char *p_prog = strstr(local_args, "Programme=");
+    const char *p_mark = strstr(local_args, "Mark=");
+
+    //ensure that ID= is present; 
+    if (!p_id) {
+        printf("CMS: UPDATE requires ID=\n");
         return 1;
     }
+
+    // convert pointers to integer indices
+    int idx_id  = p_id  ? (int)(p_id  - local_args) : -1;
+    int idx_name = p_name ? (int)(p_name - local_args) : -1;
+    int idx_prog = p_prog ? (int)(p_prog - local_args) : -1;
+    int idx_mark = p_mark ? (int)(p_mark - local_args) : -1;
+
+    // validate that user enter at least one field
+    int field_count = 0;
+    if (p_name) field_count++;
+    if (p_prog) field_count++;
+    if (p_mark) field_count++;
+
+    if (field_count == 0) {
+        printf("CMS:At least ONE field must be updated (Name, Programme, or Mark).\n");
+        return 1;
+    }
+
+    if (field_count > 1) {
+        printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
+        return 1;
+    }
+
+    // buffers for extracted values
+    char id_buf[32] = {0};
+    char name_buf[128] = {0};
+    char prog_buf[64] = {0};
+    char mark_buf[32] = {0};
+
+    // extract each value using the existing helper (preserve spaces)
+    extract_input(local_args, slen,idx_id, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("ID="), sizeof(id_buf), id_buf);
+    int id = atoi(id_buf);
+    // Extract for Name
+    if (idx_name != -1) {
+        extract_input(local_args, slen,idx_name, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Name="), sizeof(name_buf), name_buf);
+    }
+    // Extract for Programme
+    if (idx_prog != -1) {
+        extract_input(local_args, slen,idx_prog, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Programme="), sizeof(prog_buf), prog_buf);
+    }
+    // Extract for Mark
+    if (idx_mark != -1) {
+        extract_input(local_args, slen,idx_mark, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Mark="), sizeof(mark_buf), mark_buf);
+    }
+
+    // Updates record
+    int found = 0;
+    for (int i = 0; i < *count; ++i) {
+        // check if the student id is in the database, if it is excute the below code
+        if (records[i].id == id) {
+            found = 1;
+                // validate characters for name to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
+                if (idx_name != -1) {
+                    if (!isValidNames(name_buf)) {
+                        printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
+                        return 1;
+                    }
+
+                    if (name_buf[0] == '\0') {
+                        printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
+                        return 1;
+                    }
+                    strncpy(records[i].name, name_buf, STRING_LEN-1);
+                }
+
+            // validate characters in Programme to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
+            if (idx_prog != -1) {
+                if (!isValidNames(prog_buf)) {
+                     printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
+                    return 1;
+                }
+
+                 if (prog_buf[0] == '\0') {
+                        printf("CMS: Programme field is empty.Use: UPDATE ID=<id> Programme=<programme>\n");
+                        return 1;
+                    }
+                strncpy(records[i].programme, prog_buf, STRING_LEN-1);
+            }
+            // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1d.p
+            if (idx_mark != -1) {
+                float m;
+                if (sscanf(mark_buf, "%f", &m) != 1) {
+                    printf("CMS: Invalid Mark type\n");
+                    return 1;
+                }
+
+                if (m < 0 || m > 100) {
+                    printf("CMS: ERROR: Mark out of range (0-100)\n");
+                    return 1;
+                
+                }
+                // round marks to 1D.P
+                m = round(m * 10) / 10.0;
+                records[i].mark = m;
+            }
+
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);
+            break;
+        }
+    }
+    // student id does not exist, it will print out error message
+    if (!found) {
+        printf("CMS: The record with ID=%d does not exist.\n", id);
+    }
+
+    return 1;
+}
+
 
     // DELETE ID
     if (iequals(command, "DELETE")) {
