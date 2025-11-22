@@ -259,9 +259,6 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
-
-        */
-
         // QUERY
         // Uses ID to search for record
     if (iequals(command, "QUERY")) {
@@ -450,48 +447,67 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
     // DELETE ID
     if (iequals(command, "DELETE")) {
-        int id;
-        if (sscanf(local_args, "%d", &id) == 1) {
-            printf("Are you sure you want to delete ID %d? (Y/N): ", id);
+            char buf[256]; 
+            strncpy(buf, local_args, sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+
+            // Remove spaces to make key detection simpler, keep a clean copy
+            char clean[256];
+            int j = 0;
+            for (int i = 0; buf[i] != '\0' && j < 255; ++i) {
+                if (!isspace((unsigned char)buf[i])) clean[j++] = buf[i];
+            }
+            clean[j] = '\0';            
+            
+            char *p = strstr(clean, "ID=");
+            if (!p) p = strstr(clean, "id="); // case-insensitive fallback
+            if (!p || strlen(p) < 4) {
+                printf("CMS: ERROR: Invalid DELETE. Use: DELETE ID=<ID>\n");
+                return 1;
+            }
+            int id = atoi(p + 3);
+
+            int idx = findRecordById(records, *count, id);
+            if (idx == -1) {
+                printf("CMS: The record with ID=%d does not exist.\n", id);
+                return 1;
+            }
+
+            // Ask for confirmation with exact wording
+            printf("CMS: Are you sure you want to delete record with ID=%d? Type \"Y\" to Confirm or type \"N\" to cancel.\n", id);
             fflush(stdout);
-            char resp[8] = { 0 };
-            if (!fgets(resp, sizeof(resp), stdin)) { printf("\nCMS: ERROR: No response; delete cancelled.\n"); return 1; }
-            if (resp[0] == 'Y' || resp[0] == 'y') {
-#ifdef HAVE_DELETE_RECORD
-                if (!deleteRecord(records, count, id)) printf("CMS: ERROR: DELETE failed (not found).\n");
-                else {
-                    printf("CMS: DELETE successful (ID %d).\n", id);
-                    char msg[HISTORY_DESC_LEN];
-                    snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
-                    addHistory(msg);
-                }
-#else
-                int found = 0;
-                for (int i = 0; i < *count; ++i) {
-                    if (records[i].id == id) {
-                        found = 1;
-                        for (int j = i; j + 1 < *count; ++j) records[j] = records[j + 1];
-                        (*count)--;
-                        printf("CMS: DELETE successful (ID %d).\n", id);
-                        break;
+
+            displayPrompt();
+            
+            char resp[16] = {0};
+            if (!fgets(resp, sizeof(resp), stdin)) {
+                printf("CMS: The deletion is cancelled.\n");
+                return 1;
+            }
+
+                if (resp[0] == 'Y' || resp[0] == 'y') {
+            #ifdef HAVE_DELETE_RECORD
+                    if (!deleteRecord(records, count, id)) {
+                        printf("CMS: ERROR: DELETE failed (not found).\n");
+                    } else {
+                        printf("CMS: The record with ID=%d is successfully deleted.\n", id);
+                        char msg[HISTORY_DESC_LEN];
+                        snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
+                        addHistory(msg);   
                     }
-                }
-                if (!found) printf("CMS: ERROR: DELETE failed (not found).\n");
-                else {
-                    char msg[HISTORY_DESC_LEN];
-                    snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
-                    addHistory(msg);
-                }
+#else
+        // Fallback delete logic if your build doesn't have HAVE_DELETE_RECORD
+            for (int i = idx; i + 1 < *count; ++i) records[i] = records[i + 1];
+            (*count)--;
+            printf("CMS: The record with ID=%d is successfully deleted.\n", id);
+            char msg[HISTORY_DESC_LEN];
+            snprintf(msg, sizeof(msg), "DELETE: Deleted record ID=%d", id);
+            addHistory(msg);
 #endif
+            } else { 
+                printf("CMS: The deletion is cancelled.\n");
             }
-            else {
-                printf("CMS: DELETE cancelled.\n");
-            }
-        }
-        else {
-            printf("CMS: ERROR: Invalid DELETE. Use: DELETE <ID>\n");
-        }
-        return 1;
+            return 1;
     }
 
 
