@@ -18,6 +18,8 @@ void displayPrompt() {
     printf("P5_4: ");
 }
 
+// Used to track whether database has been opened
+static int db_opened = 0;
 
 void parseCommand(char *input, char *command, size_t cmd_size, char *args, size_t args_size) {
     // null terminate and guard clause
@@ -126,7 +128,7 @@ static int isValidNames(const char *name) {
     for (int i = 0; name[i] != '\0'; ++i) {
         unsigned char c = (unsigned char)name[i];
         // Allow letters, space, hyphen, apostrophe, and period
-        if (!isalpha(c) && c != ' ' && c != '-' && c != '\'' && c != '.' && c != '('&& c != ')') {
+        if (!isalnum(c) && c != ' ' && c != '-' && c != '\'' && c != '.' && c != '('&& c != ')') {
             return 0; // invalid character found
         }
     }
@@ -152,9 +154,13 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         int rc = loadDB(file, records, count);
         if (rc == 1) {
             printf("CMS: The database file \"%s\" is successfully opened.\n", file);
+            db_opened = 1;
             addHistory("OPEN: Opened database file");
         }
-        else printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
+        else { 
+            printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
+            db_opened = 0;
+        }
         return 1;
     }
 
@@ -259,8 +265,158 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         return 1;
     }
+
+    if (iequals(command, "IMPORT")) {
+        /* 1) Ensure a DB file is opened in this session. */
+        if (!db_opened) {
+            printf("CMS: ERROR: No database opened. Use OPEN before IMPORT.\n");
+            return 1;
+        }
+
+        /* 2) Require a filename argument after IMPORT. */
+        if (!local_args || !local_args[0]) {
+            printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
+            return 1;
+        }
+
+        /* 3) Copy/trim the filename provided by the user. */
+        char fname[260];
+        strncpy(fname, local_args, sizeof(fname) - 1);
+        fname[sizeof(fname) - 1] = '\0';
+        trim(fname);
+
+        /* 4) Try to open the CSV file for reading. */
+        FILE *fp = fopen(fname, "r");
+        if (!fp) {
+            printf("CMS: ERROR: Unable to open file '%s' for import.\n", fname);
+            return 1;
+        }
+
+        /* 5) Prepare a temporary array to hold parsed rows first.
+         *    We collect into tmp[] so that we can prompt the user if
+         *    any rows would override existing IDs before modifying DB.
+         */
+        StudentRecord tmp[MAX_RECORDS];
+        int tmp_count = 0;
+        int dup_count = 0;
+
+        char line[512];
+        /* 6) Read file line-by-line. fgets reads one CSV row per iteration. */
+        while (fgets(line, sizeof(line), fp)) {
+            /* remove trailing newline/carriage return characters */
+            size_t L = strlen(line);
+            while (L > 0 && (line[L - 1] == '\n' || line[L - 1] == '\r')) line[--L] = '\0';
+            if (L == 0) continue; /* skip empty lines */
+
+            /* copy into a buffer we can modify with strtok */
+            char buf[512];
+            strncpy(buf, line, sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+
+            /* 7) Simple CSV split using strtok:
+             *    - f0 = ID, f1 = Name, f2 = Programme, f3 = Mark
+             *    - This is a beginner-friendly approach and doesn't handle all CSV edge-cases.
+             */
+            char *f0 = strtok(buf, ",");
+            char *f1 = strtok(NULL, ",");
+            char *f2 = strtok(NULL, ",");
+            char *f3 = strtok(NULL, ",");
+
+            /* If any field is missing, skip this row. */
+            if (!f0 || !f1 || !f2 || !f3) continue;
+
+            /* 8) Trim whitespace around each field (leading/trailing). */
+            char *p0 = trim(f0);
+            char *p1 = trim(f1);
+            char *p2 = trim(f2);
+            char *p3 = trim(f3);
+
+            /* 9) Parse numeric fields and validate them.
+             *    - ID must parse as an integer.
+             *    - Mark must parse as float and be in range 0..100.
+             *    - Name and Programme validated by isValidNames().
+             */
+            int id = 0; 
+            float mark = 0.0f;
+            if (sscanf(p0, "%d", &id) != 1) continue;        /* bad ID -> skip */
+            if (sscanf(p3, "%f", &mark) != 1) continue;      /* bad Mark -> skip */
+            if (mark < 0.0f || mark > 100.0f) continue;      /* out-of-range -> skip */
+            if (!isValidNames(p1) || !isValidNames(p2)) continue; /* invalid text -> skip */
+
+            /* 10) Store the parsed row into tmp[] (bounded copy). */
+            if (tmp_count >= MAX_RECORDS) break; /* avoid overflow */
+            tmp[tmp_count].id = id;
+            strncpy(tmp[tmp_count].name, p1, STRING_LEN - 1); tmp[tmp_count].name[STRING_LEN - 1] = '\0';
+            strncpy(tmp[tmp_count].programme, p2, STRING_LEN - 1); tmp[tmp_count].programme[STRING_LEN - 1] = '\0';
+            tmp[tmp_count].mark = mark;
+
+            /* 11) Check whether this ID already exists in the current DB.
+             *     We only count duplicates here to warn the user later.
+             */
+            int is_dup = 0;
+            for (int i = 0; i < *count; ++i) {
+                if (records[i].id == id) { is_dup = 1; break; }
+            }
+            if (is_dup) dup_count++;
+
+            tmp_count++;
+        }
+
+        /* 12) Close the input file now that parsing is done. */
+        fclose(fp);
+
+        /* 13) If nothing valid was parsed, inform the user and return. */
+        if (tmp_count == 0) {
+            printf("CMS: No valid rows found in \"%s\". Nothing imported.\n", fname);
+            return 1;
+        }
+
+        /* 14) If any parsed rows would override existing IDs, prompt user Y/N.
+         *     This gives the user control before we modify in-memory DB.
+         */
+        if (dup_count > 0) {
+            char resp[8];
+            printf("WARNING: %d existing record(s) will be overridden. Continue? (Y/N): ", dup_count);
+            fflush(stdout);
+            if (!fgets(resp, sizeof(resp), stdin)) {
+                printf("\nCMS: IMPORT cancelled.\n");
+                return 1;
+            }
+            if (!(resp[0] == 'Y' || resp[0] == 'y')) {
+                printf("CMS: IMPORT cancelled by user.\n");
+                return 1;
+            }
+        }
+
+        /* 15) Apply the tmp rows to the current in-memory DB:
+         *     - If ID exists -> overwrite that record.
+         *     - If ID does not exist -> append (if space).
+         */
+        for (int t = 0; t < tmp_count; ++t) {
+            int found = 0;
+            for (int i = 0; i < *count; ++i) {
+                if (records[i].id == tmp[t].id) {
+                    records[i] = tmp[t]; /* overwrite existing record */
+                    found = 1;
+                    break;
+                }
+            }
+            if (!found) {
+                if (*count >= MAX_RECORDS) break; /* no more space */
+                records[*count] = tmp[t];          /* append new record */
+                (*count)++;
+            }
+        }
+
+        /* 16) Simple confirmation. Do NOT auto-save file here.
+         *     The user should run SAVE to persist changes to disk.
+         */
+        printf("Imported successfully!\n");
+        return 1;
+    }
+
         // QUERY
-        // Uses ID to search for record
+       // Uses ID to search for record
     if (iequals(command, "QUERY")) {
 
         char buf[256];

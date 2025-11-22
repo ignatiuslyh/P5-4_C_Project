@@ -10,3 +10,10 @@
 1763776512	SHOW ALL: Displayed all records
 1763776809	DELETE: Deleted record ID=244
 1763776820	SHOW ALL: Displayed all records
+1763827542	OPEN: Opened database file
+1763831403	OPEN: Opened database file
+1763831405	SHOW ALL: Displayed all records
+1763831410	OPEN: Opened database file
+1763831478	OPEN: Opened database file
+1763831479	SHOW ALL: Displayed all records
+1763831487	SHOW ALL: Displayed all records
