@@ -161,6 +161,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         else { 
             printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
             db_opened = 0;
+            char msg[HISTORY_DESC_LEN];
+            snprintf(msg, sizeof(msg), "OPEN: Failed to open %s", file);
+            addHistory(msg);
         }
         return 1;
     }
@@ -174,7 +177,12 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             printf("CMS: SAVE successful (%s).\n", file);
             addHistory("SAVE: Saved database file");
         }
-        else printf("CMS: ERROR: SAVE unsuccessful for '%s'.\n", file);
+        else {
+            printf("CMS: ERROR: SAVE unsuccessful for '%s'.\n", file);
+            char msg[HISTORY_DESC_LEN];
+            snprintf(msg, sizeof(msg), "SAVE: Failed to save %s", file);
+            addHistory(msg);
+        }
         return 1;
     }
 
@@ -196,6 +204,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // require exact case keys be present; otherwise error (simple behavior)
         if (!p_id || !p_name || !p_prog || !p_mark) {
             printf("CMS: ERROR: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
+            addHistory("INSERT: Failed - invalid keys");
             return 1;
         }
 
@@ -220,6 +229,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // validate required fields are not empty
         if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
             printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
+            addHistory("INSERT: Failed - missing field(s)");
             return 1;
         }
 
@@ -227,16 +237,21 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         length = strlen(idstr);
         if (length != REQUIRED_LENGTH) {
             printf("CMS: ERROR: The ID must be 7 characters long.\n ");
+            char msg[HISTORY_DESC_LEN]; 
+                snprintf(msg, sizeof(msg), "INSERT: Failed - ID length wrong '%s'", idstr); 
+                addHistory(msg);
             return 1;
         }
 
         // validate characters in Name and Programme
         if (!isValidNames(namestr)) {
             printf("CMS: ERROR: Invalid characters in Name. Allowed: letters, space, -, ', .\n");
+            addHistory("INSERT: Failed - invalid characters in Name");
             return 1;
         }
         if (!isValidNames(progstr)) {
             printf("CMS: ERROR: Invalid characters in Programme. Allowed: letters, space, -, ', .\n");
+            addHistory("INSERT: Failed - invalid characters in Programme");
             return 1;
         }
 
@@ -245,10 +260,12 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         float mark = 0.0f;
         if (sscanf(idstr, "%d", &id) != 1) {
             printf("CMS: ERROR: Invalid ID value.\n");
+            addHistory("INSERT: Failed - invalid ID value");
             return 1;
         }
         if (sscanf(markstr, "%f", &mark) != 1) {
             printf("CMS: ERROR: Invalid Mark value.\n");
+            addHistory("INSERT: Failed - invalid Mark value");
             return 1;
         }
         // round up to 1 decimal point
@@ -256,6 +273,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // enforce mark range [0.0, 100.0]
         if (mark < 0.0f || mark > 100.0f) {
             printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
+            addHistory("INSERT: Failed - mark out of range");
             return 1;
         }
          
@@ -268,9 +286,14 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         sr.mark = mark;
 
         if (!insertRecord(records, count, &sr)) {
+            char msg[HISTORY_DESC_LEN];
+            addHistory(msg);
             // insertRecord prints an error (duplicate or full)
         } else {
             printf("CMS: INSERT successful (ID %d).\n", id);
+            char msg[HISTORY_DESC_LEN];
+            snprintf(msg, sizeof(msg), "INSERT: Inserted record ID=%d", id);
+            addHistory(msg);
         }
         return 1;
     }
@@ -279,12 +302,14 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         /* 1) Ensure a DB file is opened in this session. */
         if (!db_opened) {
             printf("CMS: ERROR: No database opened. Use OPEN before IMPORT.\n");
+            addHistory("IMPORT: Failed - no DB opened");
             return 1;
         }
 
         /* 2) Require a filename argument after IMPORT. */
         if (!local_args || !local_args[0]) {
             printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
+            addHistory("IMPORT: Failed - no filename");
             return 1;
         }
 
@@ -298,6 +323,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         FILE *fp = fopen(fname, "r");
         if (!fp) {
             printf("CMS: ERROR: Unable to open file '%s' for import.\n", fname);
+            char msg[HISTORY_DESC_LEN]; 
+            snprintf(msg, sizeof(msg), "IMPORT: Failed to open '%s'", fname); 
+            addHistory(msg);
             return 1;
         }
 
@@ -421,6 +449,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
          *     The user should run SAVE to persist changes to disk.
          */
         printf("Imported successfully!\n");
+        char msg_imp[HISTORY_DESC_LEN]; 
+        snprintf(msg_imp, sizeof(msg_imp), "IMPORT: Imported file '%s' (%d rows)", fname, /*tmp_count*/ 0);
+        addHistory(msg_imp);
         return 1;
     }
 
@@ -463,28 +494,11 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
         else {
             printf("CMS: ERROR: Invalid QUERY format. Use: QUERY ID=<student_id>\n");
+            addHistory("QUERY: Failed - invalid format");
         }
         return 1;
     }
 
-    /*
-    // QUERY ID
-    if (iequals(command, "QUERY")) {
-        int id;
-        if (sscanf(local_args, "%d", &id) == 1) {
-            #ifdef HAVE_QUERY_RECORD
-            if (!queryRecord(records, *count, id)) {
-                printf("CMS: ERROR: Record with ID %d not found.\n", id);
-            }
-            #else
-            fallback_query(records, *count, id);
-            #endif
-        } else {
-            printf("CMS: ERROR: Invalid QUERY. Use: QUERY <ID>\n");
-        }
-        return 1;
-    }
-*/
    // UPDATE ID= <ID> FIELD =<VALUE>
     if (iequals(command, "UPDATE")) {
     
@@ -499,6 +513,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     //ensure that ID= is present; 
     if (!p_id) {
         printf("CMS: UPDATE requires ID=\n");
+        addHistory("UPDATE: Failed - missing ID");
         return 1;
     }
 
@@ -516,11 +531,13 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
     if (field_count == 0) {
         printf("CMS:At least ONE field must be updated (Name, Programme, or Mark).\n");
+        addHistory("UPDATE: Failed - no fields specified");
         return 1;
     }
 
     if (field_count > 1) {
         printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
+        addHistory("UPDATE: Failed - multiple fields specified");
         return 1;
     }
 
@@ -557,50 +574,77 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             if (idx_name != -1) {
                 if (!isValidNames(name_buf)) {
                     printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
+                    char msg[HISTORY_DESC_LEN]; 
+                    snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid characters in Name for ID=%d", id); 
+                    addHistory(msg);
                     return 1;
                 }
-
+                
                 if (name_buf[0] == '\0') {
                     printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
+                    char msg[HISTORY_DESC_LEN]; 
+                    snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Name for ID=%d", id); 
+                    addHistory(msg);
                     return 1;
                 }
                 strncpy(records[i].name, name_buf, STRING_LEN-1);
+                char msg[HISTORY_DESC_LEN]; snprintf(msg, sizeof(msg), "UPDATE: Updated Name for ID=%d", id); addHistory(msg);
             }
 
             // validate characters in Programme to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
             if (idx_prog != -1) {
                 if (!isValidNames(prog_buf)) {
                      printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
+                     char msg[HISTORY_DESC_LEN]; 
+                     snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid characters in Programme for ID=%d", id); 
+                     addHistory(msg);
                     return 1;
                 }
 
                  if (prog_buf[0] == '\0') {
                         printf("CMS: Programme field is empty.Use: UPDATE ID=<id> Programme=<programme>\n");
+                        char msg[HISTORY_DESC_LEN]; 
+                        snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Programme for ID=%d", id); 
+                        addHistory(msg);
                         return 1;
                     }
                 strncpy(records[i].programme, prog_buf, STRING_LEN-1);
+                char msg[HISTORY_DESC_LEN]; 
+                snprintf(msg, sizeof(msg), "UPDATE: Updated Programme for ID=%d", id); 
+                addHistory(msg);
             }
             // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1 decimal point
             if (idx_mark != -1) {
                 float m;
                 if (sscanf(mark_buf, "%f", &m) != 1) {
                     printf("CMS: Invalid Mark type\n");
+                     char msg[HISTORY_DESC_LEN]; 
+                     snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid mark for ID=%d", id); 
+                     addHistory(msg);
                     return 1;
                 }
 
                 if (m < 0 || m > 100) {
                     printf("CMS: ERROR: Mark out of range (0-100)\n");
+                    char msg[HISTORY_DESC_LEN]; 
+                    snprintf(msg, sizeof(msg), "UPDATE: Failed - mark out of range for ID=%d", id); 
+                    addHistory(msg);
                     return 1;
-                
                 }
 
                 if (mark_buf[0] == '\0') {
                     printf("CMS: Mark field is empty. Use: UPDATE ID=<id> Mark=<mark>\n");
+                    char msg[HISTORY_DESC_LEN]; 
+                    snprintf(msg, sizeof(msg), "UPDATE: Failed - empty mark for ID=%d", id); 
+                    addHistory(msg);
                     return 1;
                 }
                 // round marks to 1D.P
                 m = round(m * 10) / 10.0;
                 records[i].mark = m;
+                char msg[HISTORY_DESC_LEN]; 
+                snprintf(msg, sizeof(msg), "UPDATE: Updated Mark for ID=%d", id); 
+                addHistory(msg);
             }
 
             printf("CMS: The record with ID=%d is successfully updated.\n", id);
@@ -610,6 +654,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // student id does not exist, it will print out error message
     if (!found) {
         printf("CMS: The record with ID=%d does not exist.\n", id);
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UPDATE: Attempted update for ID=%d (not found)", id); 
+        addHistory(msg);
     }
 
     return 1;
@@ -634,6 +681,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             if (!p) p = strstr(clean, "id="); // case-insensitive fallback
             if (!p || strlen(p) < 4) {
                 printf("CMS: ERROR: Invalid DELETE. Use: DELETE ID=<ID>\n");
+                addHistory("DELETE: Failed - invalid format");
                 return 1;
             }
             int id = atoi(p + 3);
@@ -641,6 +689,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             int idx = findRecordById(records, *count, id);
             if (idx == -1) {
                 printf("CMS: The record with ID=%d does not exist.\n", id);
+                char msg[HISTORY_DESC_LEN]; 
+                snprintf(msg, sizeof(msg), "DELETE: Attempted delete ID=%d (not found)", id); 
+                addHistory(msg);
                 return 1;
             }
 
@@ -653,6 +704,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             char resp[16] = {0};
             if (!fgets(resp, sizeof(resp), stdin)) {
                 printf("CMS: The deletion is cancelled.\n");
+                addHistory("DELETE: Cancelled (no response)");
                 return 1;
             }
 
@@ -660,6 +712,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             #ifdef HAVE_DELETE_RECORD
                     if (!deleteRecord(records, count, id)) {
                         printf("CMS: ERROR: DELETE failed (not found).\n");
+                        char msg[HISTORY_DESC_LEN]; 
+                        snprintf(msg, sizeof(msg), "DELETE: Failed for ID=%d", id); 
+                        addHistory(msg);
                     } else {
                         printf("CMS: The record with ID=%d is successfully deleted.\n", id);
                         char msg[HISTORY_DESC_LEN];
@@ -677,6 +732,9 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 #endif
             } else { 
                 printf("CMS: The deletion is cancelled.\n");
+                char msg[HISTORY_DESC_LEN]; 
+                snprintf(msg, sizeof(msg), "DELETE: Cancelled for ID=%d", id); 
+                addHistory(msg);
             }
             return 1;
     }
@@ -700,6 +758,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             // SHOW SUMMARY
             if (iequals(buf, "SUMMARY")) {
                 showSummary(records, *count);
+                addHistory("SHOW SUMMARY: Displayed summary");
                 return 1;
             }
 
@@ -714,6 +773,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
                 if (!iequals(field, "ID") && !iequals(field, "MARK")) {
                     printf("CMS: ERROR: Invalid SHOW SORT field '%s'. Use ID or MARK.\n", field);
+                    addHistory("SHOW: Failed - invalid sort field");
                     return 1;
                 }
 
@@ -724,15 +784,18 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
                     else if (iequals(order, "ASC")) asc = 1;
                     else {
                         printf("CMS: ERROR: Unknown sort order '%s'. Use ASC or DESC.\n", order);
+                        addHistory("SHOW: Failed - invalid sort order");
                         return 1;
                     }
                 }
 
                 sort_and_print(records, *count, by_id, asc);
+                addHistory("SHOW ALL SORT: Displayed sorted records");
                 return 1;
             }
 
             printf("CMS: ERROR: Invalid SHOW command.\n");
+            addHistory("SHOW: Failed - invalid SHOW command");
             return 1;
         }
 
@@ -744,6 +807,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
                 n = atoi(local_args);
                 if (n <= 0) n = 5; // fallback to default
             }
+            if (n > MAX_HISTORY) n = MAX_HISTORY;
             showHistory(n);
             return 1;
         }
@@ -752,12 +816,17 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         if (iequals(command, "EXIT") || iequals(command, "QUIT")) {
             printf("DEBUG: Checking EXIT/QUIT. Command is: '%s'\n", command);
             printf("CMS: Program exiting.\n");
+            char msg[HISTORY_DESC_LEN]; snprintf(msg, sizeof(msg), "EXIT: Program exited");
+            addHistory(msg);
             saveHistoryToFile();
             return 0;
         }
 
         // Unknown command
         printf("CMS: ERROR: Unknown command '%s'.\n", command);
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UNKNOWN: %s", command); 
+        addHistory(msg);
         return 1;
     }
 
