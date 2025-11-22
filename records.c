@@ -97,10 +97,10 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRe
 // //     return 0; // placeholder: implement steps above
 // // }
 
-int updateRecord(StudentRecord records[], int count, int id, char *field, char *newValue) {
+int updateRecord(StudentRecord records[], int *count, int id, char *field, char *newValue) {
 
     // 1. Find the record index.
-    int index = findRecordById(records, count, id);
+    int index = findRecordById(records, *count, id);
     // 2. Check if there is a record index.
     if (index != -1)
     {
@@ -130,7 +130,6 @@ int updateRecord(StudentRecord records[], int count, int id, char *field, char *
     //5. Update Success.
     return 1; 
     }
-   
 
 int deleteRecord(StudentRecord records[], int *count, int id) {
     
