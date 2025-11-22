@@ -12,6 +12,7 @@
 #include "query.h"
 #include "history.h"
 
+# define REQUIRED_LENGTH 7
 
 // UTILITY FUNCTION: displayPrompt
 void displayPrompt() {
@@ -178,6 +179,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         char src[256] = {0};
         strncpy(src, local_args, sizeof(src) - 1);
         size_t slen = strlen(src);
+        size_t length;
 
         // find key positions in the original-cased src (case-sensitive)
         char *p_id   = strstr(src, "ID=");
@@ -212,6 +214,13 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // validate required fields are not empty
         if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
             printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
+            return 1;
+        }
+
+        // validate required length of Student ID
+        length = strlen(idstr);
+        if (length != REQUIRED_LENGTH) {
+            printf("CMS: ERROR: The ID must be 7 characters long.\n ");
             return 1;
         }
 
@@ -320,12 +329,12 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         return 1;
     }
 */
-    // UPDATE ID= <ID> FIELD =<VALUE>
+   // UPDATE ID= <ID> FIELD =<VALUE>
     if (iequals(command, "UPDATE")) {
     
     size_t slen = strlen(local_args);
 
-  // find key positions in the original-cased local_args (case-sensitive)
+    // find key positions in the original-cased local_args (case-sensitive)
     const char *p_id  = strstr(local_args, "ID=");
     const char *p_name = strstr(local_args, "Name=");
     const char *p_prog = strstr(local_args, "Programme=");
@@ -368,6 +377,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // extract each value using the existing helper (preserve spaces)
     extract_input(local_args, slen,idx_id, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("ID="), sizeof(id_buf), id_buf);
     int id = atoi(id_buf);
+
     // Extract for Name
     if (idx_name != -1) {
         extract_input(local_args, slen,idx_name, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Name="), sizeof(name_buf), name_buf);
@@ -387,19 +397,19 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // check if the student id is in the database, if it is excute the below code
         if (records[i].id == id) {
             found = 1;
-                // validate characters for name to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
-                if (idx_name != -1) {
-                    if (!isValidNames(name_buf)) {
-                        printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
-                        return 1;
-                    }
-
-                    if (name_buf[0] == '\0') {
-                        printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
-                        return 1;
-                    }
-                    strncpy(records[i].name, name_buf, STRING_LEN-1);
+            // validate characters for name to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
+            if (idx_name != -1) {
+                if (!isValidNames(name_buf)) {
+                    printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
+                    return 1;
                 }
+
+                if (name_buf[0] == '\0') {
+                    printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
+                    return 1;
+                }
+                strncpy(records[i].name, name_buf, STRING_LEN-1);
+            }
 
             // validate characters in Programme to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
             if (idx_prog != -1) {
@@ -414,7 +424,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
                     }
                 strncpy(records[i].programme, prog_buf, STRING_LEN-1);
             }
-            // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1d.p
+            // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1 decimal point
             if (idx_mark != -1) {
                 float m;
                 if (sscanf(mark_buf, "%f", &m) != 1) {
@@ -426,6 +436,11 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
                     printf("CMS: ERROR: Mark out of range (0-100)\n");
                     return 1;
                 
+                }
+
+                if (mark_buf[0] == '\0') {
+                    printf("CMS: Mark field is empty. Use: UPDATE ID=<id> Mark=<mark>\n");
+                    return 1;
                 }
                 // round marks to 1D.P
                 m = round(m * 10) / 10.0;
