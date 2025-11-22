@@ -163,8 +163,7 @@ int deleteRecord(StudentRecord records[], int *count, int id) {
     // Decrement the count
     (*count)--;
     
-    printf("CMS: DELETE successful (ID %d).\n", id);
-
+    printf("CMS:  The record with ID=%d is successfully deleted. \n", id);
     return 1;
 }
 
