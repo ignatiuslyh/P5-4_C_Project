@@ -97,150 +97,75 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRe
 // //     return 0; // placeholder: implement steps above
 // // }
 
-// // updateRecord(StudentRecord records[], int count, int id, char field, void *newValue)
-// // Purpose: update one field (N/P/M) of the record identified by id.
-// // Notes:
-// //  - field: 'N' => name, 'P' => programme, 'M' => mark (case-insensitive)
-// //  - newValue: caller-provided data (commonly a string for N/P/M); treat as const char* and parse for M
-// // Pseudocode:
-// //  - If records is NULL OR newValue is NULL:
-// //      - Print error and RETURN 0
-// //  - idx = findRecordById(records, count, id)
-// //  - If idx == -1:
-// //      - Print "CMS: The record with ID <id> does not exist."
-// //      - RETURN 0
-// //  - Convert field to uppercase
-// //  - Switch (field):
-// //      - Case 'N':
-// //          - Copy string from (char *)newValue into records[idx].name safely (bounded copy + null-terminate)
-// //          - Print "CMS: UPDATE successful (ID <id>)"   // optional here
-// //          - BREAK
-// //      - Case 'P':
-// //          - Copy string from (char *)newValue into records[idx].programme safely
-// //          - Print "CMS: UPDATE successful (ID <id>)"
-// //          - BREAK
-// //      - Case 'M':
-// //          - Attempt to parse a float from (char *)newValue (e.g., sscanf)
-// //          - If parse fails:
-// //               - Print "CMS: ERROR: Invalid mark value."
-// //               - RETURN 0
-// //          - records[idx].mark = parsed_float
-// //          - Print "CMS: UPDATE successful (ID <id>)"
-// //          - BREAK
-// //      - Default:
-// //          - Print "CMS: ERROR: Invalid field for update. Use N, P, or M."
-// //          - RETURN 0
-// //  - End switch
-// //  - RETURN 1
-
-
-int updateRecord(StudentRecord records[], int count, int id, char field, char *newValue) {
-
+int updateRecord(StudentRecord records[], int count, int id, char *field, char *newValue) {
 
     // 1. Find the record index.
     int index = findRecordById(records, count, id);
-    // 2. Check if found.
-    // check whether the record is found in database
+    // 2. Check if there is a record index.
     if (index != -1)
     {
-       switch (field) {
-        case 'N' :
-            strcpy(records[index].name, (char*)newValue);
-           printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        case 'P' :
-            strcpy(records[index].programme, (char*)newValue);
-           printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        case 'M' :
+    // 3.Update the name field with newValue when user typed "Name" only
+        if (strcmp(field, "Name") == 0)
+        {
+            strcpy(records[index].name, newValue);     
+        }
+        //Update the programme field with newValue when user typed "Programme" only
+        else if (strcmp(field, "Programme") == 0)
+        {
+            strcpy(records[index].programme, newValue);
+        }
+       //Update the mark field with newValue when user typed "Mark" only
+        else if(strcmp(field, "Mark") == 0)
+        {
             records[index].mark = atof(newValue);
-            printf("CMS: The record with ID=%d is successfully updated.\n",id);
-            break;
-        default:
-            printf("CMS: ERROR: Invalid field for update.");
-            return -1;
-       }
+        }
     }
-    // No existing record with the student ID found in database
+    
+    //4. No existing record with the student ID found in database
     else
     {
-         printf("CMS: The record with ID= %d does not exist.\n", id);
+         return 0;
     }
-    // 3. Apply the update based on 'field'.
-   // switch (field) {
-       // SWITCH statement on 'field' (after converting field to uppercase for safety):
-       // CASE 'N' (Name):
-           // Use strcpy to copy the new string from (char *)newValue into records[index].name.
-           // Print success message.
-           // BREAK.
-       // CASE 'P' (Programme):
-           // Use strcpy to copy the new string from (char *)newValue into records[index].programme.
-           // Print success message.
-           // BREAK.
-       // CASE 'M' (Mark):
-           // Cast newValue to float and assign it: records[index].mark = *(float *)newValue;
-           // Print success message.
-           // BREAK.
-       // DEFAULT:
-           // Print error message ("CMS: ERROR: Invalid field for update.").
-           // RETURN -1.
 
-       /* case 'N' :
-            strcpy(records[index].name, (char*)newValue);
-            printf("Successful update your name.\n");
-            break;
-        case 'P' :
-            strcpy(records[index].programme, (char*)newValue);
-            printf("Successful update your programme.\n");
-            break;
-        case 'M' :
-            records[index].mark = *(float*)newValue;
-            printf("Successful update your marks.\n");
-            break;
-        default:
-            printf("CMS: ERROR: Invalid field for update.");
-            return -1;*/
-    //}
-   
-    //4. Success.
+    //5. Update Success.
     return 1; 
+    }
+   
+
+int deleteRecord(StudentRecord records[], int *count, int id) {
+    
+     // Validate parameters
+    if (records == NULL || count == NULL) {
+        printf("CMS: ERROR: Internal error (bad parameters).\n");
+        return 0;
+    }
+    
+    // Find the record to delete
+    int index = findRecordById(records, *count, id);
+    if (index == -1) {
+        printf("CMS: The record with ID %d does not exist.\n", id);
+        return 0;
+    }
+
+    for (int i = 0; i < *count; ++i) {
+        printf("%-8d %-20s %-24s %.1f\n",
+               records[i].id,
+               records[i].name,
+               records[i].programme,
+               records[i].mark);
+    }
+    
+    // Shift all subsequent records left to overwrite the deleted record
+    for (int i = index; i < *count - 1; i++) {
+        records[i] = records[i + 1];
+    }
+    
+    // Decrement the count
+    (*count)--;
+    
+    printf("CMS:  The record with ID=%d is successfully deleted. \n", id);
+    return 1;
 }
-
-// int deleteRecord(StudentRecord records[], int *count, int id) {
-    
-//      // Validate parameters
-//     if (records == NULL || count == NULL) {
-//         printf("CMS: ERROR: Internal error (bad parameters).\n");
-//         return 0;
-//     }
-    
-//     // Find the record to delete
-//     int index = findRecordById(records, *count, id);
-//     if (index == -1) {
-//         printf("CMS: The record with ID %d does not exist.\n", id);
-//         return 0;
-//     }
-
-//     for (int i = 0; i < count; ++i) {
-//         printf("%-8d %-20s %-24s %.1f\n",
-//                records[i].id,
-//                records[i].name,
-//                records[i].programme,
-//                records[i].mark);
-//     }
-    
-//     // Shift all subsequent records left to overwrite the deleted record
-//     for (int i = index; i < *count - 1; i++) {
-//         records[i] = records[i + 1];
-//     }
-    
-//     // Decrement the count
-//     (*count)--;
-    
-//     printf("CMS: DELETE successful (ID %d).\n", id);
-
-//     return 1;
-// }
 
 
 

@@ -1,5 +1,13 @@
 # VS Code workspace settings and local configs
 .vscode/
+.vs/
+
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.cachefile
+*.db
 
 # Optional: ignore workspace files
 *.code-workspace
