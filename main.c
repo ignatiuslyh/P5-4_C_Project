@@ -100,28 +100,29 @@ static int fallback_query(const StudentRecord records[], int count, int id) {
     return 0;
 }
 
-static void extract_input(const char *src, size_t slen,
-                              int start_idx,
-                              int idx_id, int idx_name, int idx_prog, int idx_mark,
-                              int key_len, int out_size, char *out_buf)
+// extract_input helper function to take inputs without quotes
+static void extract_input(const char *input, size_t starting_len,
+                          int start_index,
+                          int index_id, int index_name, int index_prog, int index_mark,
+                          int key_len, int out_size, char *out_buf)
 {
-    // compute start (after key=) in original src to preserve spacing/case
-    int start = start_idx + key_len;
-    // compute end as the nearest key position after start, or slen
-    int end = (int)slen;
-    if (idx_id  > start_idx && idx_id  < end) end = idx_id;
-    if (idx_name> start_idx && idx_name< end) end = idx_name;
-    if (idx_prog> start_idx && idx_prog< end) end = idx_prog;
-    if (idx_mark> start_idx && idx_mark< end) end = idx_mark;
-    // trim leading spaces
-    while (start < end && isspace((unsigned char)src[start])) start++;
-    // trim trailing spaces
-    while (end > start && isspace((unsigned char)src[end - 1])) end--;
-    // copy bounded
-    int vlen = end - start;
-    if (vlen >= out_size) vlen = out_size - 1;
-    if (vlen > 0) memcpy(out_buf, src + start, (size_t)vlen);
-    out_buf[vlen] = '\0';
+    // start (e.g 'ID=') to preserve spacing/case
+    int start = start_index + key_len;
+    // end as the nearest key position after starting_len
+    int end = (int)starting_len;
+    if (index_id > start_index && index_id < end) end = index_id;
+    if (index_name > start_index && index_name < end) end = index_name;
+    if (index_prog > start_index && index_prog < end) end = index_prog;
+    if (index_mark > start_index && index_mark < end) end = index_mark;
+    // Trim leading spaces
+    while (start < end && isspace((unsigned char)input[start])) start++;
+    // Trim trailing spaces
+    while (end > start && isspace((unsigned char)input[end - 1])) end--;
+    // Get input value
+    int value_len = end - start;
+    if (value_len >= out_size) value_len = out_size - 1;
+    if (value_len > 0) memcpy(out_buf, input + start, (size_t)value_len);
+    out_buf[value_len] = '\0';
 }
 
 static int isValidNames(const char *name) {
@@ -181,66 +182,56 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     // INSERT ID Name Programme Mark
     // (Name and Programme must not contain spaces)
     if (iequals(command, "INSERT")) {
-        // copy args to local buffer (preserve case and spacing)
-        char src[256] = {0};
-        strncpy(src, local_args, sizeof(src) - 1);
-        size_t slen = strlen(src);
+        // Make a copy of input for parsing, while keeping case & spaces
+        char input[256] = {0};
+        strncpy(input, local_args, sizeof(input) - 1);
+        size_t starting_len = strlen(input);
         size_t length;
 
-        // find key positions in the original-cased src (case-sensitive)
-        char *p_id   = strstr(src, "ID=");
-        char *p_name = strstr(src, "Name=");
-        char *p_prog = strstr(src, "Programme=");
-        char *p_mark = strstr(src, "Mark=");
+        // Find starting location of each column in input
+        char *input_id = strstr(input, "ID=");
+        char *input_name = strstr(input, "Name=");
+        char *input_prog = strstr(input, "Programme=");
+        char *input_mark = strstr(input, "Mark=");
 
-        // require exact case keys be present; otherwise error (simple behavior)
-        if (!p_id || !p_name || !p_prog || !p_mark) {
-            printf("CMS: ERROR: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
+        // Return error if column names are not in correct format
+        if (!input_id || !input_name || !input_prog || !input_mark) {
+            printf("CMS: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
             return 1;
         }
 
-        // convert pointers to integer indices
-        int idx_id   = (int)(p_id - src);
-        int idx_name = (int)(p_name - src);
-        int idx_prog = (int)(p_prog - src);
-        int idx_mark = (int)(p_mark - src);
+        // Find the starting index for each column for extract_input
+        int index_id = (int)(input_id - input);
+        int index_name = (int)(input_name - input);
+        int index_prog = (int)(input_prog - input);
+        int index_mark = (int)(input_mark - input);
 
-        // buffers for extracted values
+        // Allocate size for each input
         char idstr[32] = {0};
         char namestr[STRING_LEN] = {0};
         char progstr[STRING_LEN] = {0};
         char markstr[32] = {0};
 
-        // extract each value using the existing helper (preserve spaces)
-        extract_input(src, slen, idx_id,   idx_id, idx_name, idx_prog, idx_mark, (int)strlen("ID="),        sizeof(idstr),   idstr);
-        extract_input(src, slen, idx_name, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Name="),      sizeof(namestr), namestr);
-        extract_input(src, slen, idx_prog, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Programme="), sizeof(progstr), progstr);
-        extract_input(src, slen, idx_mark, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Mark="),      sizeof(markstr), markstr);
+        // Use extract_value helper to extract each input
+        extract_input(input, starting_len, index_id, index_id, index_name, index_prog, index_mark, (int)strlen("ID="), sizeof(idstr), idstr);
+        extract_input(input, starting_len, index_name, index_id, index_name, index_prog, index_mark, (int)strlen("Name="), sizeof(namestr), namestr);
+        extract_input(input, starting_len, index_prog, index_id, index_name, index_prog, index_mark, (int)strlen("Programme="), sizeof(progstr), progstr);
+        extract_input(input, starting_len, index_mark, index_id, index_name, index_prog, index_mark, (int)strlen("Mark="), sizeof(markstr), markstr);
 
-        // validate required fields are not empty
+        // Make sure there are no empty inputs
         if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
             printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
             return 1;
         }
 
-        // validate required length of Student ID
+        // Make sure that ID must be 7 characters long
         length = strlen(idstr);
         if (length != REQUIRED_LENGTH) {
             printf("CMS: ERROR: The ID must be 7 characters long.\n ");
             return 1;
         }
 
-        // validate characters in Name and Programme
-        if (!isValidNames(namestr)) {
-            printf("CMS: ERROR: Invalid characters in Name. Allowed: letters, space, -, ', .\n");
-            return 1;
-        }
-        if (!isValidNames(progstr)) {
-            printf("CMS: ERROR: Invalid characters in Programme. Allowed: letters, space, -, ', .\n");
-            return 1;
-        }
-
-        // parse numeric values safely
+        // Validation for numeric values
         int id = 0;
         float mark = 0.0f;
         if (sscanf(idstr, "%d", &id) != 1) {
@@ -251,16 +242,15 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             printf("CMS: ERROR: Invalid Mark value.\n");
             return 1;
         }
-        // round up to 1 decimal point
+        // Round to 1 decimal point
          mark = round(mark * 10) / 10.0;
-        // enforce mark range [0.0, 100.0]
+        // Marks only between 0.0 and 100.0
         if (mark < 0.0f || mark > 100.0f) {
             printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
             return 1;
         }
          
-               
-        // build record and insert
+        // Turn values into StudentRecord for database
         StudentRecord sr;
         sr.id = id;
         strncpy(sr.name, namestr, STRING_LEN - 1); sr.name[STRING_LEN - 1] = '\0';
@@ -268,121 +258,108 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         sr.mark = mark;
 
         if (!insertRecord(records, count, &sr)) {
-            // insertRecord prints an error (duplicate or full)
+            
         } else {
             printf("CMS: INSERT successful (ID %d).\n", id);
         }
         return 1;
     }
 
+    // IMPORT filename.csv
+    // BULK INSERT rows from CSV file
     if (iequals(command, "IMPORT")) {
-        /* 1) Ensure a DB file is opened in this session. */
+        // Ensure DB is opened this session
         if (!db_opened) {
             printf("CMS: ERROR: No database opened. Use OPEN before IMPORT.\n");
             return 1;
         }
-
-        /* 2) Require a filename argument after IMPORT. */
+ 
+        // Make sure IMPORT contains filename
         if (!local_args || !local_args[0]) {
             printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
             return 1;
         }
-
-        /* 3) Copy/trim the filename provided by the user. */
+ 
+        // Make a copy of input and trim filename
         char fname[260];
         strncpy(fname, local_args, sizeof(fname) - 1);
         fname[sizeof(fname) - 1] = '\0';
         trim(fname);
-
-        /* 4) Try to open the CSV file for reading. */
+ 
+        // Open CSV file
         FILE *fp = fopen(fname, "r");
         if (!fp) {
             printf("CMS: ERROR: Unable to open file '%s' for import.\n", fname);
             return 1;
         }
-
-        /* 5) Prepare a temporary array to hold parsed rows first.
-         *    We collect into tmp[] so that we can prompt the user if
-         *    any rows would override existing IDs before modifying DB.
-         */
+ 
+        // Temporary storage for parsed rows
         StudentRecord tmp[MAX_RECORDS];
         int tmp_count = 0;
         int dup_count = 0;
-
+ 
+        // Read file line by line
         char line[512];
-        /* 6) Read file line-by-line. fgets reads one CSV row per iteration. */
         while (fgets(line, sizeof(line), fp)) {
-            /* remove trailing newline/carriage return characters */
+            // Remove trailing newlines and skip empty newlines
             size_t L = strlen(line);
             while (L > 0 && (line[L - 1] == '\n' || line[L - 1] == '\r')) line[--L] = '\0';
-            if (L == 0) continue; /* skip empty lines */
-
-            /* copy into a buffer we can modify with strtok */
+            if (L == 0) continue;
+ 
+            // Make a copy for splitting string
             char buf[512];
             strncpy(buf, line, sizeof(buf) - 1);
             buf[sizeof(buf) - 1] = '\0';
-
-            /* 7) Simple CSV split using strtok:
-             *    - f0 = ID, f1 = Name, f2 = Programme, f3 = Mark
-             *    - This is a beginner-friendly approach and doesn't handle all CSV edge-cases.
-             */
+ 
+            // Split CSV into ID, Name, Programme, Mark
             char *f0 = strtok(buf, ",");
             char *f1 = strtok(NULL, ",");
             char *f2 = strtok(NULL, ",");
             char *f3 = strtok(NULL, ",");
-
-            /* If any field is missing, skip this row. */
+ 
+            // Skip missing fields
             if (!f0 || !f1 || !f2 || !f3) continue;
-
-            /* 8) Trim whitespace around each field (leading/trailing). */
+ 
+            // Trim whitespace from each field
             char *p0 = trim(f0);
             char *p1 = trim(f1);
             char *p2 = trim(f2);
             char *p3 = trim(f3);
-
-            /* 9) Parse numeric fields and validate them.
-             *    - ID must parse as an integer.
-             *    - Mark must parse as float and be in range 0..100.
-             *    - Name and Programme validated by isValidNames().
-             */
-            int id = 0; 
+ 
+            // Parse and validate numeric/text fields
+            int id = 0;
             float mark = 0.0f;
-            if (sscanf(p0, "%d", &id) != 1) continue;        /* bad ID -> skip */
-            if (sscanf(p3, "%f", &mark) != 1) continue;      /* bad Mark -> skip */
-            if (mark < 0.0f || mark > 100.0f) continue;      /* out-of-range -> skip */
-            if (!isValidNames(p1) || !isValidNames(p2)) continue; /* invalid text -> skip */
-
-            /* 10) Store the parsed row into tmp[] (bounded copy). */
-            if (tmp_count >= MAX_RECORDS) break; /* avoid overflow */
+            if (sscanf(p0, "%d", &id) != 1) continue;        // invalid ID
+            if (sscanf(p3, "%f", &mark) != 1) continue;      // invalid mark
+            if (mark < 0.0f || mark > 100.0f) continue;      // out-of-range mark
+ 
+            // Store parsed row into temporary array
+            if (tmp_count >= MAX_RECORDS) break;
             tmp[tmp_count].id = id;
             strncpy(tmp[tmp_count].name, p1, STRING_LEN - 1); tmp[tmp_count].name[STRING_LEN - 1] = '\0';
             strncpy(tmp[tmp_count].programme, p2, STRING_LEN - 1); tmp[tmp_count].programme[STRING_LEN - 1] = '\0';
             tmp[tmp_count].mark = mark;
-
-            /* 11) Check whether this ID already exists in the current DB.
-             *     We only count duplicates here to warn the user later.
-             */
+ 
+            // Count duplicates against current database for user warning
             int is_dup = 0;
             for (int i = 0; i < *count; ++i) {
                 if (records[i].id == id) { is_dup = 1; break; }
             }
             if (is_dup) dup_count++;
-
+ 
             tmp_count++;
         }
-
-        /* 12) Close the input file now that parsing is done. */
+ 
+        // Close file
         fclose(fp);
-
-        /* 13) If nothing valid was parsed, inform the user and return. */
+ 
+        // Return error if no valid rows found
         if (tmp_count == 0) {
             printf("CMS: No valid rows found in \"%s\". Nothing imported.\n", fname);
             return 1;
         }
-
-        /* 14) If any parsed rows would override existing IDs, prompt user Y/N.
-         *     This gives the user control before we modify in-memory DB.
-         */
+ 
+        // Prompt if any rows will be overwritten (Y/N) to continue
         if (dup_count > 0) {
             char resp[8];
             printf("WARNING: %d existing record(s) will be overridden. Continue? (Y/N): ", dup_count);
@@ -396,34 +373,29 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
                 return 1;
             }
         }
-
-        /* 15) Apply the tmp rows to the current in-memory DB:
-         *     - If ID exists -> overwrite that record.
-         *     - If ID does not exist -> append (if space).
-         */
+ 
+        // Apply rows: overwrite existing IDs or append new ones
         for (int t = 0; t < tmp_count; ++t) {
             int found = 0;
             for (int i = 0; i < *count; ++i) {
                 if (records[i].id == tmp[t].id) {
-                    records[i] = tmp[t]; /* overwrite existing record */
+                    records[i] = tmp[t];
                     found = 1;
                     break;
                 }
             }
             if (!found) {
-                if (*count >= MAX_RECORDS) break; /* no more space */
-                records[*count] = tmp[t];          /* append new record */
+                if (*count >= MAX_RECORDS) break;
+                records[*count] = tmp[t];
                 (*count)++;
             }
         }
-
-        /* 16) Simple confirmation. Do NOT auto-save file here.
-         *     The user should run SAVE to persist changes to disk.
-         */
+ 
+        // Confirmation message
         printf("Imported successfully!\n");
         return 1;
     }
-
+ 
         // QUERY
        // Uses ID to search for record
     if (iequals(command, "QUERY")) {

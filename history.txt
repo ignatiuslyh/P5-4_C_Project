@@ -1,8 +1,3 @@
-1763722058	OPEN: Opened database file
-1763722061	SHOW ALL: Displayed all records
-1763722092	QUERY: Found record ID=2301234
-1763722194	SHOW ALL: Displayed all records
-1763722201	OPEN: Opened database file
 1763722202	SHOW ALL: Displayed all records
 1763773880	OPEN: Opened database file
 1763773886	SHOW ALL: Displayed all records
@@ -17,3 +12,9 @@
 1763831478	OPEN: Opened database file
 1763831479	SHOW ALL: Displayed all records
 1763831487	SHOW ALL: Displayed all records
+1763878032	OPEN: Opened database file
+1763878036	SHOW ALL: Displayed all records
+1763878074	SHOW ALL: Displayed all records
+1763878148	SHOW ALL: Displayed all records
+1763878317	OPEN: Opened database file
+1763878320	SHOW ALL: Displayed all records
