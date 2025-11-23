@@ -340,7 +340,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             strncpy(tmp[tmp_count].programme, p2, STRING_LEN - 1); tmp[tmp_count].programme[STRING_LEN - 1] = '\0';
             tmp[tmp_count].mark = mark;
  
-            // Count duplicates against current database for user warning
+            // Warn user if there are duplicates
             int is_dup = 0;
             for (int i = 0; i < *count; ++i) {
                 if (records[i].id == id) { is_dup = 1; break; }
