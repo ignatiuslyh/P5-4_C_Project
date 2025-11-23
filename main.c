@@ -9,7 +9,6 @@
 #include "sort.h"
 #include "summary.h"
 #include "banner.h"
-#include "query.h"
 #include "history.h"
 
 # define REQUIRED_LENGTH 7
