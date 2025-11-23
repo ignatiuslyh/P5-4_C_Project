@@ -245,16 +245,16 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
 
 
-        // parse numeric values safely
+        // Parse numeric values
         int id = 0;
         float mark = 0.0f;
         if (sscanf(idstr, "%d", &id) != 1) {
-            printf("CMS: ERROR: Invalid ID value.\n");
+            printf("CMS: Invalid ID value.\n");
             addHistory("INSERT: Failed - invalid ID value");
             return 1;
         }
         if (sscanf(markstr, "%f", &mark) != 1) {
-            printf("CMS: ERROR: Invalid Mark value.\n");
+            printf("CMS: Invalid Mark value.\n");
             addHistory("INSERT: Failed - invalid Mark value");
             return 1;
         }
@@ -262,7 +262,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
          mark = round(mark * 10) / 10.0;
         // Marks only between 0.0 and 100.0
         if (mark < 0.0f || mark > 100.0f) {
-            printf("CMS: ERROR: Mark must be between 0.0 and 100.0.\n");
+            printf("CMS: Mark must be between 0.0 and 100.0.\n");
             addHistory("INSERT: Failed - mark out of range");
             return 1;
         }
