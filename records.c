@@ -96,24 +96,28 @@ int updateRecord(StudentRecord records[], int *count, int id, char *field, char 
     // 3.Update the name field with newValue when user typed "Name" only
         if (strcmp(field, "Name") == 0)
         {
-            strcpy(records[index].name, newValue);     
+            strcpy(records[index].name, newValue);  
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);   
         }
         //Update the programme field with newValue when user typed "Programme" only
         else if (strcmp(field, "Programme") == 0)
         {
             strcpy(records[index].programme, newValue);
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);
         }
        //Update the mark field with newValue when user typed "Mark" only
         else if(strcmp(field, "Mark") == 0)
         {
             records[index].mark = atof(newValue);
+            printf("CMS: The record with ID=%d is successfully updated.\n", id);
         }
     }
     
     //4. No existing record with the student ID found in database
     else
     {
-         return 0;
+        printf("CMS: The record with ID=%d does not exist.\n", id);
+        return 0;
     }
 
     //5. Update Success.
