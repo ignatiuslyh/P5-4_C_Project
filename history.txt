@@ -1,20 +1,20 @@
-1763722202	SHOW ALL: Displayed all records
-1763773880	OPEN: Opened database file
-1763773886	SHOW ALL: Displayed all records
-1763773977	SHOW ALL: Displayed all records
-1763776512	SHOW ALL: Displayed all records
-1763776809	DELETE: Deleted record ID=244
-1763776820	SHOW ALL: Displayed all records
-1763827542	OPEN: Opened database file
-1763831403	OPEN: Opened database file
-1763831405	SHOW ALL: Displayed all records
-1763831410	OPEN: Opened database file
-1763831478	OPEN: Opened database file
-1763831479	SHOW ALL: Displayed all records
-1763831487	SHOW ALL: Displayed all records
-1763878032	OPEN: Opened database file
-1763878036	SHOW ALL: Displayed all records
-1763878074	SHOW ALL: Displayed all records
-1763878148	SHOW ALL: Displayed all records
-1763878317	OPEN: Opened database file
-1763878320	SHOW ALL: Displayed all records
+1763837107	SHOW ALL: Displayed all records
+1763842723	OPEN: Opened database file
+1763842726	SHOW ALL: Displayed all records
+1763842729	SHOW SUMMARY: Displayed summary
+1763842735	SHOW: Failed - invalid SHOW command
+1763842738	UNKNOWN: SORT
+1763842770	SHOW ALL: Displayed all records
+1763842778	SHOW SUMMARY: Displayed summary
+1763842805	UNKNOWN: HELP
+1763842811	INSERT: Failed - invalid keys
+1763842816	UPDATE: Failed - missing ID
+1763842822	DELETE: Failed - invalid format
+1763842855	SHOW: Failed - invalid SHOW command
+1763842859	SHOW: Failed - invalid SHOW command
+1763842865	SHOW ALL SORT: Displayed sorted records
+1763842877	SHOW ALL SORT: Displayed sorted records
+1763842889	SHOW ALL SORT: Displayed sorted records
+1763842895	SAVE: Saved database file
+1763842901	EXIT: Program exited
+1763842918	EXIT: Program exited
