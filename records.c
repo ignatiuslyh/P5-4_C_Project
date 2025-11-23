@@ -7,6 +7,7 @@
 
 
 #include "records.h"
+#include "history.h"
 
 
 int findRecordById(const StudentRecord records[], int count, int id) {
@@ -25,26 +26,33 @@ int findRecordById(const StudentRecord records[], int count, int id) {
     return -1; 
 }
 
-// // insertRecord(StudentRecord records[], int *count, const StudentRecord newRecord)
-// // Purpose: add newRecord to array if there is capacity and id is unique.
-// // Pseudocode:
-// //  - If records is NULL OR count is NULL:
-// //      - Print "CMS: ERROR: Internal error (bad parameters)."
-// //      - RETURN 0
-// //  - If *count >= MAX_RECORDS:
-// //      - Print "CMS: ERROR: Database capacity reached."
-// //      - RETURN 0
-// //  - idx = findRecordById(records, *count, newRecord.id)
-// //  - If idx != -1:
-// //      - Print "CMS: ERROR: Record with ID <id> already exists."
-// //      - RETURN 0
-// //  - records[*count] = newRecord    // struct assignment
-// //  - (*count)++                     // increment stored count
-// //  - Print "CMS: INSERT successful (ID <id>)."   // optional message here or let caller print
-// //  - RETURN 1
-// // int insertRecord(StudentRecord records[], int *count, const StudentRecord newRecord) {
-// //     return 0; // placeholder: implement steps above
-// // }
+int queryRecord(const StudentRecord records[], int count, int id) {
+    // Validate input
+    if (!records) {
+        printf("CMS: ERROR: Internal error (null records pointer).\n");
+        return 0;
+    }
+
+    // Search for the record with matching ID
+    for (int i = 0; i < count; i++) {
+        if (records[i].id == id) {
+            // Record found - display it
+            printf("CMS: The record with ID=%d is found in the data table.\n", id);
+            printf("%-8s %-20s %-24s %s\n", "ID", "Name", "Programme", "Mark");
+            printf("%-8d %-20s %-24s %.1f\n",
+                records[i].id,
+                records[i].name,
+                records[i].programme,
+                records[i].mark);
+            return 1;
+        }
+    }
+
+    // Record not found
+    printf("CMS: The record with ID=%d does not exist.\n", id);
+    return 0;
+}
+
 
 int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRecord) {
     // Validate input pointers
@@ -79,24 +87,6 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRe
     return 1;
 }
 
-// // queryRecord(const StudentRecord records[], int count, int id)
-// // Purpose: locate record by id and print its details in a simple table.
-// // Pseudocode:
-// //  - If records is NULL:
-// //      - Print "CMS: ERROR: Internal error (null records pointer)."
-// //      - RETURN 0
-// //  - idx = findRecordById(records, count, id)
-// //  - If idx == -1:
-// //      - Print "CMS: The record with ID <id> does not exist."
-// //      - RETURN 0
-// //  - Print header row: "ID   Name   Programme   Mark"
-// //  - Print separator line
-// // //  - Print record details for records[idx] using formatted output
-// // //  - RETURN 1
-// // int queryRecord(const StudentRecord records[], int count, int id) {
-// //     return 0; // placeholder: implement steps above
-// // }
-
 int updateRecord(StudentRecord records[], int *count, int id, char *field, char *newValue) {
 
     // 1. Find the record index.
@@ -104,27 +94,28 @@ int updateRecord(StudentRecord records[], int *count, int id, char *field, char 
     // 2. Check if there is a record index.
     if (index != -1)
     {
+
     // 3.Update the name field with newValue when user typed "Name" only
-        if (strcmp(field, "Name") == 0)
-        {
-            strcpy(records[index].name, newValue);     
+       if (strcmp(field, "Name") == 0) {
+        strncpy(records[index].name, newValue, STRING_LEN - 1);
         }
-        //Update the programme field with newValue when user typed "Programme" only
-        else if (strcmp(field, "Programme") == 0)
-        {
-            strcpy(records[index].programme, newValue);
+        else if (strcmp(field, "Programme") == 0) {
+            strncpy(records[index].programme, newValue, STRING_LEN - 1);
         }
-       //Update the mark field with newValue when user typed "Mark" only
-        else if(strcmp(field, "Mark") == 0)
-        {
+        else if (strcmp(field, "Mark") == 0) {
             records[index].mark = atof(newValue);
         }
+        printf("CMS: The record with ID=%d is successfully updated.\n", id);
     }
     
     //4. No existing record with the student ID found in database
     else
     {
-         return 0;
+        printf("CMS: The record with ID=%d does not exist.\n", id);
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UPDATE: Attempted update for ID=%d (not found)", id); 
+        addHistory(msg);
+        return 0;
     }
 
     //5. Update Success.

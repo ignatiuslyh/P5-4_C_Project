@@ -9,10 +9,35 @@
 #include "sort.h"
 #include "summary.h"
 #include "banner.h"
-#include "query.h"
 #include "history.h"
 
 # define REQUIRED_LENGTH 7
+
+
+static void printDeclaration(void) {
+    static const char decl[] =
+        "\n Declaration\n\n"
+        "SIT's policy on copying does not allow the students to copy source code as well as assessment solutions from another person, AI, or other places. "
+        "It is the students' responsibility to guarantee that their assessment solutions are their own work. Meanwhile, the students must also ensure that their work is not accessible by others. "
+        "Where such plagiarism is detected, both of the assessments involved will receive ZERO mark.\n\n"
+        "We hereby declare that:\n\n"
+        "- We fully understand and agree to the abovementioned plagiarism policy.\n\n"
+        "- We did not copy any code from others or from other places.\n\n"
+        "- We did not share our codes with others or upload to any other places for public access and will not do that in the future.\n\n"
+        "- We agree that our project will receive Zero mark if there is any plagiarism detected.\n\n"
+        "- We agree that we will not disclose any information or material of the group project to others or upload to any other places for public access.\n\n"
+        "- We agree that we did not copy any code directly from AI generated sources.\n\n"
+        "Declared by: Group Name (P5-4)\n\n"
+        "Team members:\n\n"
+        "1. LEOW YI HAO IGNATIUS\n"
+        "2. KUAH CHIN YANG, EDDISON\n"
+        "3. LIM SI YUN\n"
+        "4. LIAO XUE E\n"
+        "5. LAZER LIDEON RAJA\n\n"
+        "Date: 25/11/2025\n\n";
+    fputs(decl, stdout);
+}
+
 
 // UTILITY FUNCTION: displayPrompt
 void displayPrompt() {
@@ -86,18 +111,6 @@ static int iequals(const char *a, const char *b) {
 static void print_record(const StudentRecord *r) {
     if (!r) return;
     printf("%d %s %s %.1f\n", r->id, r->name, r->programme, r->mark);
-}
-
-// Fallback simple query (prints record or error)
-static int fallback_query(const StudentRecord records[], int count, int id) {
-    for (int i = 0; i < count; ++i) {
-        if (records[i].id == id) {
-            print_record(&records[i]);
-            return 1;
-        }
-    }
-    printf("CMS: ERROR: Record with ID %d not found.\n", id);
-    return 0;
 }
 
 // extract_input helper function to take inputs without quotes
@@ -175,7 +188,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         const char* file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = saveDB(file, records, *count);
         if (rc == 1) {
-            printf("CMS: SAVE successful (%s).\n", file);
+            printf("CMS: The database file \"%s\" is successfully saved.\n", file);
             addHistory("SAVE: Saved database file");
         }
         else {
@@ -316,10 +329,10 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             addHistory("IMPORT: Failed - no DB opened");
             return 1;
         }
- 
+
         // Make sure IMPORT contains filename
         if (!local_args || !local_args[0]) {
-            printf("ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
+            printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
             addHistory("IMPORT: Failed - no filename");
             return 1;
         }
@@ -495,6 +508,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     
     size_t slen = strlen(local_args);
 
+    char msg[HISTORY_DESC_LEN]; 
+
     // find key positions in the original-cased local_args (case-sensitive)
     const char *p_id  = strstr(local_args, "ID=");
     const char *p_name = strstr(local_args, "Name=");
@@ -504,7 +519,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     //ensure that ID= is present; 
     if (!p_id) {
         printf("CMS: UPDATE requires ID=\n");
-        addHistory("UPDATE: Failed - missing ID");
+        addHistory("UPDATE: Failed - missing ID\n");
         return 1;
     }
 
@@ -521,14 +536,14 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (p_mark) field_count++;
 
     if (field_count == 0) {
-        printf("CMS:At least ONE field must be updated (Name, Programme, or Mark).\n");
-        addHistory("UPDATE: Failed - no fields specified");
+        printf("CMS: At least ONE field must be updated (Name, Programme, or Mark).\n");
+        printf("UPDATE: Failed - no fields specified\n");
         return 1;
     }
 
     if (field_count > 1) {
         printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
-        addHistory("UPDATE: Failed - multiple fields specified");
+        printf("UPDATE: Failed - multiple fields specified\n");
         return 1;
     }
 
@@ -538,117 +553,102 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     char prog_buf[64] = {0};
     char mark_buf[32] = {0};
 
-    // extract each value using the existing helper (preserve spaces)
-    extract_input(local_args, slen,idx_id, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("ID="), sizeof(id_buf), id_buf);
+    // extract ID using the extract_input helper functions
+    extract_input(local_args, slen,idx_id, idx_id,idx_name, idx_prog, idx_mark, (int)strlen("ID="), sizeof(id_buf), id_buf);
+
     int id = atoi(id_buf);
 
     // Extract for Name
     if (idx_name != -1) {
-        extract_input(local_args, slen,idx_name, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Name="), sizeof(name_buf), name_buf);
+        extract_input(local_args, slen,idx_name, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Name="), sizeof(name_buf), name_buf);
     }
+
     // Extract for Programme
     if (idx_prog != -1) {
-        extract_input(local_args, slen,idx_prog, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Programme="), sizeof(prog_buf), prog_buf);
+        extract_input(local_args, slen,idx_prog, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Programme="), sizeof(prog_buf), prog_buf);
     }
+
     // Extract for Mark
     if (idx_mark != -1) {
-        extract_input(local_args, slen,idx_mark, idx_id, idx_name, idx_prog, idx_mark,(int)strlen("Mark="), sizeof(mark_buf), mark_buf);
+        extract_input(local_args, slen, idx_mark, idx_id, idx_name, idx_prog, idx_mark, (int)strlen("Mark="), sizeof(mark_buf), mark_buf);
     }
 
-    // Updates record
-    int found = 0;
-    for (int i = 0; i < *count; ++i) {
-        // check if the student id is in the database, if it is excute the below code
-        if (records[i].id == id) {
-            found = 1;
-            // validate characters for name to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
-            if (idx_name != -1) {
-                if (!isValidNames(name_buf)) {
-                    printf("CMS: Invalid characters in Name. Allowed: letters, space, -, ',(, ).\n");
-                    char msg[HISTORY_DESC_LEN]; 
-                    snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid characters in Name for ID=%d", id); 
-                    addHistory(msg);
-                    return 1;
-                }
-                
-                if (name_buf[0] == '\0') {
-                    printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
-                    char msg[HISTORY_DESC_LEN]; 
-                    snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Name for ID=%d", id); 
-                    addHistory(msg);
-                    return 1;
-                }
-                strncpy(records[i].name, name_buf, STRING_LEN-1);
-                char msg[HISTORY_DESC_LEN]; snprintf(msg, sizeof(msg), "UPDATE: Updated Name for ID=%d", id); addHistory(msg);
-            }
-
-            // validate characters in Programme to contain the following letter,space,Apostrophe,Slash,Parentheses and cannot be null
-            if (idx_prog != -1) {
-                if (!isValidNames(prog_buf)) {
-                     printf("CMS: Invalid characters in Programme. Allowed: letters, space, -, ',(, ).\n");
-                     char msg[HISTORY_DESC_LEN]; 
-                     snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid characters in Programme for ID=%d", id); 
-                     addHistory(msg);
-                    return 1;
-                }
-
-                 if (prog_buf[0] == '\0') {
-                        printf("CMS: Programme field is empty.Use: UPDATE ID=<id> Programme=<programme>\n");
-                        char msg[HISTORY_DESC_LEN]; 
-                        snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Programme for ID=%d", id); 
-                        addHistory(msg);
-                        return 1;
-                    }
-                strncpy(records[i].programme, prog_buf, STRING_LEN-1);
-                char msg[HISTORY_DESC_LEN]; 
-                snprintf(msg, sizeof(msg), "UPDATE: Updated Programme for ID=%d", id); 
-                addHistory(msg);
-            }
-            // validate marks field to not contain letter and mark goes from between 0 to 100 also update to 1 decimal point
-            if (idx_mark != -1) {
-                float m;
-                if (sscanf(mark_buf, "%f", &m) != 1) {
-                    printf("CMS: Invalid Mark type\n");
-                     char msg[HISTORY_DESC_LEN]; 
-                     snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid mark for ID=%d", id); 
-                     addHistory(msg);
-                    return 1;
-                }
-
-                if (m < 0 || m > 100) {
-                    printf("CMS: ERROR: Mark out of range (0-100)\n");
-                    char msg[HISTORY_DESC_LEN]; 
-                    snprintf(msg, sizeof(msg), "UPDATE: Failed - mark out of range for ID=%d", id); 
-                    addHistory(msg);
-                    return 1;
-                }
-
-                if (mark_buf[0] == '\0') {
-                    printf("CMS: Mark field is empty. Use: UPDATE ID=<id> Mark=<mark>\n");
-                    char msg[HISTORY_DESC_LEN]; 
-                    snprintf(msg, sizeof(msg), "UPDATE: Failed - empty mark for ID=%d", id); 
-                    addHistory(msg);
-                    return 1;
-                }
-                // round marks to 1D.P
-                m = round(m * 10) / 10.0;
-                records[i].mark = m;
-                char msg[HISTORY_DESC_LEN]; 
-                snprintf(msg, sizeof(msg), "UPDATE: Updated Mark for ID=%d", id); 
-                addHistory(msg);
-            }
-
-            printf("CMS: The record with ID=%d is successfully updated.\n", id);
-            break;
-        }
-    }
-    // student id does not exist, it will print out error message
-    if (!found) {
-        printf("CMS: The record with ID=%d does not exist.\n", id);
+    // Validate that the value for Name Field is not empty
+    if (idx_name != -1 && name_buf[0] == '\0') {
+        printf("CMS: Name field is empty. Use: UPDATE ID=<id> Name=<name>\n");
         char msg[HISTORY_DESC_LEN]; 
-        snprintf(msg, sizeof(msg), "UPDATE: Attempted update for ID=%d (not found)", id); 
+        snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Name for ID=%d", id); 
+        addHistory(msg);
+        return 1;
+    }
+    // char msg[HISTORY_DESC_LEN]; 
+    snprintf(msg, sizeof(msg), "UPDATE: Updated Name for ID=%d", id);
+    addHistory(msg);
+
+    // Validate that the value for Programme Field is not empty
+    if (idx_prog != -1 && prog_buf[0] == '\0') {
+        printf("CMS: Programme field is empty. Use: UPDATE ID=<id> Programme=<programme>\n");
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UPDATE: Failed - empty Programme for ID=%d", id); 
+        addHistory(msg);
+        return 1;
+    }
+    // char msg[HISTORY_DESC_LEN]; 
+    snprintf(msg, sizeof(msg), "UPDATE: Updated Programme for ID=%d", id);
+    addHistory(msg);
+
+    // Validate that Mark is not empty, contains only numeric input, is within 0–100, and is rounded to one decimal place.
+    if (idx_mark != -1) {
+        float m;
+        if (mark_buf[0] == '\0') {
+            printf("CMS: Mark field is empty. Use: UPDATE ID=<id> Mark=<mark>\n");
+            char msg[HISTORY_DESC_LEN]; 
+            snprintf(msg, sizeof(msg), "UPDATE: Failed - empty mark for ID=%d", id); 
+            addHistory(msg);
+            return 1;
+        }
+
+        if (sscanf(mark_buf, "%f", &m) != 1) {
+            printf("CMS: Invalid Mark type.\n");
+            char msg[HISTORY_DESC_LEN]; 
+            snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid mark for ID=%d", id); 
+            addHistory(msg);
+            return 1;
+        }
+
+        if (m < 0 || m > 100) {
+            printf("CMS: ERROR: Mark out of range (0-100)\n");
+            char msg[HISTORY_DESC_LEN]; 
+            snprintf(msg, sizeof(msg), "UPDATE: Failed - mark out of range for ID=%d", id); 
+            addHistory(msg);
+            return 1;
+        }
+
+        // round marks to 1D.P
+        m = round(m * 10) / 10.0;
+        idx_mark = m;
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UPDATE: Updated Mark for ID=%d", id); 
         addHistory(msg);
     }
+
+    char fieldType[32];
+    char valueBuf[128];
+
+    if (idx_name != -1) {
+        strcpy(fieldType, "Name");
+        strcpy(valueBuf, name_buf);
+    }
+    else if (idx_prog != -1) {
+        strcpy(fieldType, "Programme");
+        strcpy(valueBuf, prog_buf);
+    }
+    else if (idx_mark != -1) {
+        strcpy(fieldType, "Mark");
+        strcpy(valueBuf, mark_buf);
+    }
+
+    updateRecord(records, count, id, fieldType, valueBuf);
 
     return 1;
 }
@@ -837,6 +837,7 @@ int main(void) {
     initHistory(); // Initialise History Function
 
     if (loadDB(filename, records, &record_count) == 1) {
+        printDeclaration();
         printBanner();
     } else {
         printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
