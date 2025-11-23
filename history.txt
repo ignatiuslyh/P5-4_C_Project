@@ -1,0 +1,20 @@
+1763837107	SHOW ALL: Displayed all records
+1763842723	OPEN: Opened database file
+1763842726	SHOW ALL: Displayed all records
+1763842729	SHOW SUMMARY: Displayed summary
+1763842735	SHOW: Failed - invalid SHOW command
+1763842738	UNKNOWN: SORT
+1763842770	SHOW ALL: Displayed all records
+1763842778	SHOW SUMMARY: Displayed summary
+1763842805	UNKNOWN: HELP
+1763842811	INSERT: Failed - invalid keys
+1763842816	UPDATE: Failed - missing ID
+1763842822	DELETE: Failed - invalid format
+1763842855	SHOW: Failed - invalid SHOW command
+1763842859	SHOW: Failed - invalid SHOW command
+1763842865	SHOW ALL SORT: Displayed sorted records
+1763842877	SHOW ALL SORT: Displayed sorted records
+1763842889	SHOW ALL SORT: Displayed sorted records
+1763842895	SAVE: Saved database file
+1763842901	EXIT: Program exited
+1763842918	EXIT: Program exited
