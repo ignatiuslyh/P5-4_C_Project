@@ -7,6 +7,7 @@
 
 
 #include "records.h"
+#include "history.h"
 
 
 int findRecordById(const StudentRecord records[], int count, int id) {
@@ -93,30 +94,27 @@ int updateRecord(StudentRecord records[], int *count, int id, char *field, char 
     // 2. Check if there is a record index.
     if (index != -1)
     {
+
     // 3.Update the name field with newValue when user typed "Name" only
-        if (strcmp(field, "Name") == 0)
-        {
-            strcpy(records[index].name, newValue);  
-            printf("CMS: The record with ID=%d is successfully updated.\n", id);   
+       if (strcmp(field, "Name") == 0) {
+        strncpy(records[index].name, newValue, STRING_LEN - 1);
         }
-        //Update the programme field with newValue when user typed "Programme" only
-        else if (strcmp(field, "Programme") == 0)
-        {
-            strcpy(records[index].programme, newValue);
-            printf("CMS: The record with ID=%d is successfully updated.\n", id);
+        else if (strcmp(field, "Programme") == 0) {
+            strncpy(records[index].programme, newValue, STRING_LEN - 1);
         }
-       //Update the mark field with newValue when user typed "Mark" only
-        else if(strcmp(field, "Mark") == 0)
-        {
+        else if (strcmp(field, "Mark") == 0) {
             records[index].mark = atof(newValue);
-            printf("CMS: The record with ID=%d is successfully updated.\n", id);
         }
+        printf("CMS: The record with ID=%d is successfully updated.\n", id);
     }
     
     //4. No existing record with the student ID found in database
     else
     {
         printf("CMS: The record with ID=%d does not exist.\n", id);
+        char msg[HISTORY_DESC_LEN]; 
+        snprintf(msg, sizeof(msg), "UPDATE: Attempted update for ID=%d (not found)", id); 
+        addHistory(msg);
         return 0;
     }
 
