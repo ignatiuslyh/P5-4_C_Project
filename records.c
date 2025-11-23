@@ -65,7 +65,7 @@ int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRe
         return 0;
     }
 
-    // Insert record safely (bounded copies)
+    // Insert record
     records[*count].id = newRecord->id;
     strncpy(records[*count].name, newRecord->name, STRING_LEN - 1);
     records[*count].name[STRING_LEN - 1] = '\0';

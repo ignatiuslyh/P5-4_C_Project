@@ -202,18 +202,11 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         char *input_prog = strstr(input, "Programme=");
         char *input_mark = strstr(input, "Mark=");
 
-        // require exact case keys be present; otherwise error (simple behavior)
-        if (!input_id || !input_name || !input_prog || !input_mark) {
-            printf("CMS: ERROR: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
-            addHistory("INSERT: Failed - invalid keys");
-            return 1;
-        }
-
         // Find the starting index for each column for extract_input
-        int index_id = (int)(input_id - input);
-        int index_name = (int)(input_name - input);
-        int index_prog = (int)(input_prog - input);
-        int index_mark = (int)(input_mark - input);
+        int index_id = input_id ? (int)(input_id - input) : -1;
+        int index_name = input_name ? (int)(input_name - input) : -1;
+        int index_prog = input_prog ? (int)(input_prog - input) : -1;
+        int index_mark = input_mark ? (int)(input_mark - input) : -1;
 
         // Allocate size for each input
         char idstr[32] = {0};
@@ -221,7 +214,34 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         char progstr[STRING_LEN] = {0};
         char markstr[32] = {0};
 
-        // Use extract_value helper to extract each input
+        // Check ID for duplicates first
+        if (input_id) {
+            extract_input(input, starting_len, index_id,
+                          index_id, index_name, index_prog, index_mark,
+                          (int)strlen("ID="), sizeof(idstr), idstr);
+
+            if (idstr[0] != '\0') {
+                int tmpid = 0;
+                if (sscanf(idstr, "%d", &tmpid) == 1) {
+                    if (findRecordById(records, *count, tmpid) != -1) {
+                        printf("CMS: The record with ID=%d already exists.\n", tmpid);
+                        char msg[HISTORY_DESC_LEN];
+                        snprintf(msg, sizeof(msg), "INSERT: Failed - duplicate ID=%d", tmpid);
+                        addHistory(msg);
+                        return 1;
+                    }
+                }
+            }
+        }
+
+        // Require exact case keys be present; otherwise error
+        if (!input_id || !input_name || !input_prog || !input_mark) {
+            printf("CMS: Invalid INSERT. Keys must be exactly: ID= Name= Programme= Mark=\n");
+            addHistory("INSERT: Failed - invalid keys");
+            return 1;
+        }
+
+        // Use extract_input helper to extract each input
         extract_input(input, starting_len, index_id, index_id, index_name, index_prog, index_mark, (int)strlen("ID="), sizeof(idstr), idstr);
         extract_input(input, starting_len, index_name, index_id, index_name, index_prog, index_mark, (int)strlen("Name="), sizeof(namestr), namestr);
         extract_input(input, starting_len, index_prog, index_id, index_name, index_prog, index_mark, (int)strlen("Programme="), sizeof(progstr), progstr);
@@ -229,7 +249,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
         // Make sure there are no empty inputs
         if (idstr[0] == '\0' || namestr[0] == '\0' || progstr[0] == '\0' || markstr[0] == '\0') {
-            printf("CMS: ERROR: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
+            printf("CMS: Invalid INSERT. Use: INSERT ID=<id> Name=<name> Programme=<programme> Mark=<mark>\n");
             addHistory("INSERT: Failed - missing field(s)");
             return 1;
         }
@@ -237,49 +257,49 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // Make sure that ID must be 7 characters long
         length = strlen(idstr);
         if (length != REQUIRED_LENGTH) {
-            printf("CMS: ERROR: The ID must be 7 characters long.\n ");
-            char msg[HISTORY_DESC_LEN]; 
-                snprintf(msg, sizeof(msg), "INSERT: Failed - ID length wrong '%s'", idstr); 
-                addHistory(msg);
+            printf("CMS: The ID must be 7 characters long.\n ");
+            char msg[HISTORY_DESC_LEN];
+            snprintf(msg, sizeof(msg), "INSERT Failed - ID length wrong '%s'", idstr);
+            addHistory(msg);
             return 1;
         }
-
 
         // Parse numeric values
         int id = 0;
         float mark = 0.0f;
         if (sscanf(idstr, "%d", &id) != 1) {
             printf("CMS: Invalid ID value.\n");
-            addHistory("INSERT: Failed - invalid ID value");
+            addHistory("INSERT Failed - invalid ID value");
             return 1;
         }
         if (sscanf(markstr, "%f", &mark) != 1) {
             printf("CMS: Invalid Mark value.\n");
-            addHistory("INSERT: Failed - invalid Mark value");
+            addHistory("INSERT Failed - invalid Mark value");
             return 1;
         }
         // Round to 1 decimal point
-         mark = round(mark * 10) / 10.0;
+        mark = round(mark * 10) / 10.0;
         // Marks only between 0.0 and 100.0
         if (mark < 0.0f || mark > 100.0f) {
             printf("CMS: Mark must be between 0.0 and 100.0.\n");
             addHistory("INSERT: Failed - mark out of range");
             return 1;
         }
-         
+
         // Turn values into StudentRecord for database
         StudentRecord sr;
         sr.id = id;
-        strncpy(sr.name, namestr, STRING_LEN - 1); sr.name[STRING_LEN - 1] = '\0';
-        strncpy(sr.programme, progstr, STRING_LEN - 1); sr.programme[STRING_LEN - 1] = '\0';
+        strncpy(sr.name, namestr, STRING_LEN - 1);
+        sr.name[STRING_LEN - 1] = '\0';
+        strncpy(sr.programme, progstr, STRING_LEN - 1);
+        sr.programme[STRING_LEN - 1] = '\0';
         sr.mark = mark;
 
         if (!insertRecord(records, count, &sr)) {
             char msg[HISTORY_DESC_LEN];
             addHistory(msg);
-            // insertRecord prints an error (duplicate or full)
         } else {
-            printf("CMS: INSERT successful (ID %d).\n", id);
+            printf("INSERT successful (ID %d).\n", id);
             char msg[HISTORY_DESC_LEN];
             snprintf(msg, sizeof(msg), "INSERT: Inserted record ID=%d", id);
             addHistory(msg);
@@ -292,14 +312,14 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (iequals(command, "IMPORT")) {
         // Ensure DB is opened this session
         if (!db_opened) {
-            printf("CMS: ERROR: No database opened. Use OPEN before IMPORT.\n");
+            printf("ERROR: No database opened. Use OPEN before IMPORT.\n");
             addHistory("IMPORT: Failed - no DB opened");
             return 1;
         }
  
         // Make sure IMPORT contains filename
         if (!local_args || !local_args[0]) {
-            printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
+            printf("ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
             addHistory("IMPORT: Failed - no filename");
             return 1;
         }
@@ -313,7 +333,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         // Open CSV file
         FILE *fp = fopen(fname, "r");
         if (!fp) {
-            printf("CMS: ERROR: Unable to open file '%s' for import.\n", fname);
+            printf("ERROR: Unable to open file '%s' for import.\n", fname);
             char msg[HISTORY_DESC_LEN]; 
             snprintf(msg, sizeof(msg), "IMPORT: Failed to open '%s'", fname); 
             addHistory(msg);
@@ -401,7 +421,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             }
         }
  
-        // Apply rows: overwrite existing IDs or append new ones
+        // Overwrite existing IDs or append new ones
         for (int t = 0; t < tmp_count; ++t) {
             int found = 0;
             for (int i = 0; i < *count; ++i) {
