@@ -9,10 +9,35 @@
 #include "sort.h"
 #include "summary.h"
 #include "banner.h"
-#include "query.h"
 #include "history.h"
 
 # define REQUIRED_LENGTH 7
+
+
+static void printDeclaration(void) {
+    static const char decl[] =
+        "\n Declaration\n\n"
+        "SIT's policy on copying does not allow the students to copy source code as well as assessment solutions from another person, AI, or other places. "
+        "It is the students' responsibility to guarantee that their assessment solutions are their own work. Meanwhile, the students must also ensure that their work is not accessible by others. "
+        "Where such plagiarism is detected, both of the assessments involved will receive ZERO mark.\n\n"
+        "We hereby declare that:\n\n"
+        "- We fully understand and agree to the abovementioned plagiarism policy.\n\n"
+        "- We did not copy any code from others or from other places.\n\n"
+        "- We did not share our codes with others or upload to any other places for public access and will not do that in the future.\n\n"
+        "- We agree that our project will receive Zero mark if there is any plagiarism detected.\n\n"
+        "- We agree that we will not disclose any information or material of the group project to others or upload to any other places for public access.\n\n"
+        "- We agree that we did not copy any code directly from AI generated sources.\n\n"
+        "Declared by: Group Name (P5-4)\n\n"
+        "Team members:\n\n"
+        "1. LEOW YI HAO IGNATIUS\n"
+        "2. KUAH CHIN YANG, EDDISON\n"
+        "3. LIM SI YUN\n"
+        "4. LIAO XUE E\n"
+        "5. LAZER LIDEON RAJA\n\n"
+        "Date: 25/11/2025\n\n";
+    fputs(decl, stdout);
+}
+
 
 // UTILITY FUNCTION: displayPrompt
 void displayPrompt() {
@@ -88,17 +113,6 @@ static void print_record(const StudentRecord *r) {
     printf("%d %s %s %.1f\n", r->id, r->name, r->programme, r->mark);
 }
 
-// Fallback simple query (prints record or error)
-static int fallback_query(const StudentRecord records[], int count, int id) {
-    for (int i = 0; i < count; ++i) {
-        if (records[i].id == id) {
-            print_record(&records[i]);
-            return 1;
-        }
-    }
-    printf("CMS: ERROR: Record with ID %d not found.\n", id);
-    return 0;
-}
 
 static void extract_input(const char *src, size_t slen,
                               int start_idx,
@@ -174,7 +188,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         const char* file = default_filename && *default_filename ? default_filename : "P5_4-CMS.txt";
         int rc = saveDB(file, records, *count);
         if (rc == 1) {
-            printf("CMS: SAVE successful (%s).\n", file);
+            printf("CMS: The database file \"%s\" is successfully saved.\n", file);
             addHistory("SAVE: Saved database file");
         }
         else {
@@ -307,7 +321,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
 
         /* 2) Require a filename argument after IMPORT. */
-        if (!local_args || !local_args[0]) {
+        if (!args || !args[0]) {
             printf("CMS: ERROR: IMPORT requires a filename. Usage: IMPORT file.csv\n");
             addHistory("IMPORT: Failed - no filename");
             return 1;
@@ -846,6 +860,7 @@ int main(void) {
     initHistory(); // Initialise History Function
 
     if (loadDB(filename, records, &record_count) == 1) {
+        printDeclaration();
         printBanner();
     } else {
         printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
