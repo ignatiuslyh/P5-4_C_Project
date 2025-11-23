@@ -15,7 +15,6 @@ static int round_to_hundredths(float m) {
     return (int)(m * 100.0f + 0.5f);
 }
 
-// showSummary: concise and easy-to-follow for Year 1
 void showSummary(const StudentRecord records[], int count) {
     if (!records) {
         printf("CMS: ERROR: Internal error (null records pointer).\n");

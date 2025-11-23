@@ -1,3 +1,11 @@
+1763901480	INSERT: Failed - invalid keys
+1763901769	INSERT: Inserted record ID=2401234
+1763901775	SHOW ALL: Displayed all records
+1763901783	SAVE: Saved database file
+1763901798	OPEN: Opened database file
+1763901799	SHOW ALL: Displayed all records
+1763901948	DELETE: Deleted record ID=2401234
+1763901960	SAVE: Saved database file
 1763901977	OPEN: Opened database file
 1763903044	INSERT: Inserted record ID=2401234
 1763903047	SHOW ALL: Displayed all records
@@ -5,16 +13,8 @@
 1763903324	INSERT: Inserted record ID=2401234
 1763903398	INSERT: Inserted record ID=2302342
 1763903406	SHOW SUMMARY: Displayed summary
-1763914020	OPEN: Opened database file
-1763914022	SHOW ALL: Displayed all records
-1763914035	UPDATE: Updated Name for ID=2301234
-1763914035	UPDATE: Updated Programme for ID=2301234
-1763914037	SHOW ALL: Displayed all records
-1763914053	UPDATE: Failed - empty Name for ID=2301234
-1763914123	UPDATE: Updated Name for ID=2301234
-1763914123	UPDATE: Updated Programme for ID=2301234
-1763914123	UPDATE: Failed - mark out of range for ID=2301234
-1763914130	UPDATE: Updated Name for ID=2301234
-1763914130	UPDATE: Updated Programme for ID=2301234
-1763914130	UPDATE: Updated Mark for ID=2301234
-1763914134	SHOW ALL: Displayed all records
+1763905329	OPEN: Opened database file
+1763905353	QUERY: Attempted search for ID=2401234 (not found)
+1763905374	QUERY: Found record ID=2201234
+1763908956	IMPORT: Imported file 'testcsv.csv' (0 rows)
+1763908959	SHOW ALL: Displayed all records
