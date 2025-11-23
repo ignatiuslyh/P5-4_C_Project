@@ -1,8 +1,3 @@
-1763901366	SHOW ALL: Displayed all records
-1763901370	SHOW SUMMARY: Displayed summary
-1763901378	SHOW ALL SORT: Displayed sorted records
-1763901385	SHOW ALL SORT: Displayed sorted records
-1763901447	INSERT: Failed - invalid keys
 1763901480	INSERT: Failed - invalid keys
 1763901769	INSERT: Inserted record ID=2401234
 1763901775	SHOW ALL: Displayed all records
@@ -18,3 +13,8 @@
 1763903324	INSERT: Inserted record ID=2401234
 1763903398	INSERT: Inserted record ID=2302342
 1763903406	SHOW SUMMARY: Displayed summary
+1763905329	OPEN: Opened database file
+1763905353	QUERY: Attempted search for ID=2401234 (not found)
+1763905374	QUERY: Found record ID=2201234
+1763908956	IMPORT: Imported file 'testcsv.csv' (0 rows)
+1763908959	SHOW ALL: Displayed all records
