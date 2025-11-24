@@ -173,7 +173,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             addHistory("OPEN: Opened database file");
         }
         else { 
-            printf("CMS: ERROR: The database file \"%s\" is failed to open.\n", file);
+            printf("CMS: ERROR: The database file \"%s\" failed to open.\n", file);
             db_opened = 0;
             char msg[HISTORY_DESC_LEN];
             snprintf(msg, sizeof(msg), "OPEN: Failed to open %s", file);
@@ -846,8 +846,8 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
 
 
 int main(void) {
-    StudentRecord records[MAX_RECORDS];    
-    int record_count = 0;                 
+    StudentRecord records[MAX_RECORDS];
+    int record_count = 0;
     const char *filename = "P5_4-CMS.txt"; // default DB filename
 
     enum { MAX_CMD_LEN = 512, CMD_WORD_LEN = 32, ARGS_LEN = 480 };
@@ -859,12 +859,12 @@ int main(void) {
 
     initHistory(); // Initialise History Function
 
-    if (loadDB(filename, records, &record_count) == 1) {
-        printDeclaration();
-        printBanner();
-    } else {
-        printf("CMS: No database loaded (starting with empty database). Use OPEN or INSERT to add records.\n");
-    }
+    // Print declaration and banner immediately 
+    printDeclaration();
+    printBanner();
+
+    // Inform user DB is not loaded yet and prompt to run OPEN
+    printf("CMS: No database loaded. Use OPEN to load the CMS database\n");
 
     // Main command loop
     while (running) {
