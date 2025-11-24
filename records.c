@@ -57,19 +57,19 @@ int queryRecord(const StudentRecord records[], int count, int id) {
 int insertRecord(StudentRecord records[], int *count, const StudentRecord *newRecord) {
     // Validate input pointers
     if (!records || !count || !newRecord) {
-        printf("CMS: ERROR: Internal error (bad parameters).\n");
+        printf("CMS: Internal error (bad parameters).\n");
         return 0;
     }
 
-    // Check capacity
+    // Check database capacity
     if (*count >= MAX_RECORDS) {
-        printf("CMS: ERROR: Database full.\n");
+        printf("CMS: Database full.\n");
         return 0;
     }
 
     // Check for duplicate ID
     if (findRecordById(records, *count, newRecord->id) != -1) {
-        printf("CMS: ERROR: Record with ID %d already exists.\n", newRecord->id);
+        printf("CMS: Record with ID %d already exists.\n", newRecord->id);
         return 0;
     }
 

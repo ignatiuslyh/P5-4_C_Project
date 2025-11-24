@@ -14,7 +14,7 @@ CFLAGS = -std=c11 -Wall -Wextra -I. -O2 -DNDEBUG -MMD -MP
 LDFLAGS = -lm
 
 # Source files in the project
-SRCS = main.c database.c records.c sort.c summary.c banner.c history.c
+SRCS = main.c database.c records.c sort.c summary.c banner.c history.c import.c
 
 # Object files live in build/ (patsubst converts .c -> build/.o)
 OBJS = $(patsubst %.c,build/%.o,$(SRCS))
