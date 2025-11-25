@@ -316,7 +316,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
             addHistory("IMPORT: Failed - no DB opened");
             return 1;
         }
-        return importRecords(local_args, records, count);
+        //return importRecords(local_args, records, count);
     }
 
         // QUERY
@@ -396,13 +396,13 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
     if (p_mark) field_count++;
 
     if (field_count == 0) {
-        printf("CMS: At least ONE field must be updated (Name, Programme, or Mark).\n");
+        printf("CMS: At least ONE field must be updated. UPDATE ID=<ID> Field=<value>.\n");
         printf("UPDATE: Failed - no fields specified\n");
         return 1;
     }
 
     if (field_count > 1) {
-        printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark).\n");
+        printf("CMS: UPDATE allows only ONE field (Name, Programme, or Mark) to be updated at a time. \n");
         printf("UPDATE: Failed - multiple fields specified\n");
         return 1;
     }
@@ -441,7 +441,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         addHistory(msg);
         return 1;
     }
-    // char msg[HISTORY_DESC_LEN]; 
+   
     snprintf(msg, sizeof(msg), "UPDATE: Updated Name for ID=%d", id);
     addHistory(msg);
 
@@ -469,7 +469,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
 
         if (sscanf(mark_buf, "%f", &m) != 1) {
-            printf("CMS: Invalid Mark type.\n");
+            printf("CMS: Invalid Mark type. Mark must be a number\n");
             char msg[HISTORY_DESC_LEN]; 
             snprintf(msg, sizeof(msg), "UPDATE: Failed - invalid mark for ID=%d", id); 
             addHistory(msg);
@@ -477,7 +477,7 @@ int processCommand(const char *command, char *args, StudentRecord records[], int
         }
 
         if (m < 0 || m > 100) {
-            printf("CMS: ERROR: Mark out of range (0-100)\n");
+            printf("CMS: Mark must be between 0.0 and 100.0\n");
             char msg[HISTORY_DESC_LEN]; 
             snprintf(msg, sizeof(msg), "UPDATE: Failed - mark out of range for ID=%d", id); 
             addHistory(msg);

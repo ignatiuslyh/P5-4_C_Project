@@ -1,20 +1,20 @@
-1763913123	SHOW ALL: Displayed all records
-1763913128	SHOW SUMMARY: Displayed summary
-1763913160	OPEN: Opened database file
-1763913165	SHOW ALL: Displayed all records
-1763913182	INSERT: Inserted record ID=2201232
-1763913187	INSERT: Inserted record ID=2201212
-1763913190	SHOW ALL: Displayed all records
-1763913195	SHOW SUMMARY: Displayed summary
-1763954607	OPEN: Opened database file
-1763954618	SHOW ALL: Displayed all records
-1763954765	OPEN: Failed to open P5_4-CMS.txt
-1764005672	EXIT: Program exited
-1764005680	EXIT: Program exited
-1764005689	OPEN: Failed to open P5_4-CMS.txt
-1764005699	EXIT: Program exited
-1764005722	IMPORT: Failed - no DB opened
-1764005725	OPEN: Failed to open P5_4-CMS.txt
-1764005836	OPEN: Opened database file
-1764005838	SHOW ALL: Displayed all records
-1764005857	EXIT: Program exited
+1764040230	UPDATE: Updated Programme for ID=1101234
+1764040230	UPDATE: Failed - invalid mark for ID=1101234
+1764041298	UPDATE: Failed - empty Name for ID=2301234
+1764041306	SHOW ALL: Displayed all records
+1764041396	SHOW ALL: Displayed all records
+1764041441	UPDATE: Updated Name for ID=2301234
+1764041441	UPDATE: Updated Programme for ID=2301234
+1764041441	UPDATE: Failed - mark out of range for ID=2301234
+1764041476	UPDATE: Updated Name for ID=2301234
+1764041476	UPDATE: Updated Programme for ID=2301234
+1764041476	UPDATE: Failed - mark out of range for ID=2301234
+1764041511	EXIT: Program exited
+1764041521	OPEN: Opened database file
+1764041523	UNKNOWN: MARK
+1764041533	UPDATE: Updated Name for ID=2301234
+1764041533	UPDATE: Updated Programme for ID=2301234
+1764041533	UPDATE: Failed - mark out of range for ID=2301234
+1764041540	SHOW ALL: Displayed all records
+1764041654	UPDATE: Failed - empty Name for ID=2301234
+1764041807	SHOW ALL: Displayed all records
