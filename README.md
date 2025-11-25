@@ -3,8 +3,6 @@
 Simple command-line Class Management System written in C.  
 Provides an in-memory student database with basic CRUD operations, import from CSV, sorting, summary statistics and an operation history.
 
-This README was generated from the project source files.
-
 ## Features
 - Load/save database to a tab-separated text file
 - INSERT, QUERY, UPDATE, DELETE records
